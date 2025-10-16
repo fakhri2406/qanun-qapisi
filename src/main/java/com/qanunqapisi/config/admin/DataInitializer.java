@@ -1,21 +1,19 @@
 package com.qanunqapisi.config.admin;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.qanunqapisi.domain.Role;
 import com.qanunqapisi.domain.User;
 import com.qanunqapisi.repository.RoleRepository;
 import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.util.Hasher;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -31,10 +29,11 @@ public class DataInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         List<String> roles = List.of("ADMIN", "CUSTOMER");
         for (String roleName : roles) {
-            roleRepository.findByTitle(roleName).orElseGet(() -> {
+            if (roleRepository.findByTitle(roleName).isEmpty()) {
                 Role role = Role.builder().title(roleName).build();
-                return roleRepository.save(role);
-            });
+                roleRepository.save(role);
+                log.info("Created role: {}", roleName);
+            }
         }
 
         String email = adminProperties.getEmail();

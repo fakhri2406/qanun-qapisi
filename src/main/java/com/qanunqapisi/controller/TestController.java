@@ -30,12 +30,12 @@ public class TestController {
 
     @GetMapping
     public ResponseEntity<Page<TestResponse>> listPublishedTests(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "publishedAt") String sortBy,
-            @RequestParam(defaultValue = "DESC") String sortDir) {
-        
-        Sort sort = sortDir.equalsIgnoreCase("ASC") ? 
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size,
+        @RequestParam(defaultValue = "publishedAt") String sortBy,
+        @RequestParam(defaultValue = "DESC") String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase("ASC") ?
             Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), sort);
 
@@ -54,8 +54,8 @@ public class TestController {
 
     @PostMapping("/{id}/submit")
     public ResponseEntity<TestResultResponse> submitTest(
-            @PathVariable UUID id,
-            @Valid @RequestBody SubmitTestRequest request) {
+        @PathVariable UUID id,
+        @Valid @RequestBody SubmitTestRequest request) {
         return ResponseEntity.ok(testAttemptService.submitTest(id, request));
     }
 

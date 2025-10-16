@@ -28,15 +28,15 @@ public class AdminUserController {
 
     @GetMapping
     public ResponseEntity<Page<AdminUserResponse>> listUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "DESC") String sortDir) {
-        
-        Sort sort = sortDir.equalsIgnoreCase("ASC") ? 
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "50") int size,
+        @RequestParam(defaultValue = "createdAt") String sortBy,
+        @RequestParam(defaultValue = "DESC") String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase("ASC") ?
             Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), sort);
-        
+
         return ResponseEntity.ok(adminUserService.listUsers(pageable));
     }
 
@@ -52,8 +52,8 @@ public class AdminUserController {
 
     @PutMapping("/{id}")
     public ResponseEntity<AdminUserResponse> updateUser(
-            @PathVariable UUID id,
-            @Valid @RequestBody UpdateUserRequest request) {
+        @PathVariable UUID id,
+        @Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(adminUserService.updateUser(id, request));
     }
 

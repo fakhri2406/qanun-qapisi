@@ -1,11 +1,11 @@
 package com.qanunqapisi.dto.response.error;
 
-import java.time.LocalDateTime;
-import java.util.Map;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+
+import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 @Builder

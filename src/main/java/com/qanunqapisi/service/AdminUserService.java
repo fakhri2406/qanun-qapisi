@@ -10,12 +10,12 @@ import java.util.UUID;
 
 public interface AdminUserService {
     Page<AdminUserResponse> listUsers(Pageable pageable);
-    
+
     AdminUserResponse getUser(UUID userId);
-    
+
     AdminUserResponse createUser(CreateUserRequest request);
-    
+
     AdminUserResponse updateUser(UUID userId, UpdateUserRequest request);
-    
+
     void deleteUser(UUID userId);
 }

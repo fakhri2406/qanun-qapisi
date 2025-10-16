@@ -9,10 +9,10 @@ import java.util.UUID;
 
 public interface TestAttemptService {
     TestAttemptResponse startTest(UUID testId);
-    
+
     TestResultResponse submitTest(UUID testId, SubmitTestRequest request);
-    
+
     List<TestAttemptResponse> getTestAttempts(UUID testId);
-    
+
     TestResultResponse getAttemptResults(UUID attemptId);
 }

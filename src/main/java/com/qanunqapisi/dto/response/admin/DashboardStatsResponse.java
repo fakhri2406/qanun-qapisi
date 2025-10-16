@@ -7,4 +7,5 @@ public record DashboardStatsResponse(
     long totalUsers,
     long premiumUsers,
     long totalAttempts
-) {}
+) {
+}

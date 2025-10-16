@@ -1,5 +1,19 @@
 package com.qanunqapisi.service.impl;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.qanunqapisi.domain.Answer;
 import com.qanunqapisi.domain.Question;
 import com.qanunqapisi.domain.Role;
@@ -20,31 +34,30 @@ import com.qanunqapisi.repository.RoleRepository;
 import com.qanunqapisi.repository.TestRepository;
 import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.service.TestService;
+import static com.qanunqapisi.util.ErrorMessages.CANNOT_START_PREMIUM_TEST;
+import static com.qanunqapisi.util.ErrorMessages.CLOSED_MULTIPLE_AT_LEAST_ONE;
+import static com.qanunqapisi.util.ErrorMessages.CLOSED_SINGLE_ONE_CORRECT;
+import static com.qanunqapisi.util.ErrorMessages.OPEN_TEXT_REQUIRES_ANSWER;
+import static com.qanunqapisi.util.ErrorMessages.QUESTION_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.TEST_ALREADY_PUBLISHED;
+import static com.qanunqapisi.util.ErrorMessages.TEST_MUST_HAVE_QUESTIONS;
+import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.USER_NOT_FOUND;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import static com.qanunqapisi.util.ErrorMessages.*;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
 @Slf4j
 public class TestServiceImpl implements TestService {
+    private static final String CLOSED_SINGLE = "CLOSED_SINGLE";
+    private static final String CLOSED_MULTIPLE = "CLOSED_MULTIPLE";
+    private static final String PUBLISHED = "PUBLISHED";
+
     private final TestRepository testRepository;
     private final QuestionRepository questionRepository;
     private final AnswerRepository answerRepository;
@@ -67,7 +80,7 @@ public class TestServiceImpl implements TestService {
             .questionCount(0)
             .totalPossibleScore(0)
             .build();
-        
+
         testRepository.save(test);
 
         if (request.questions() != null && !request.questions().isEmpty()) {
@@ -98,7 +111,7 @@ public class TestServiceImpl implements TestService {
 
         if (request.questions() != null) {
             questionRepository.deleteByTestId(testId);
-            
+
             for (int i = 0; i < request.questions().size(); i++) {
                 CreateQuestionRequest qReq = request.questions().get(i);
                 createQuestion(testId, qReq, i);
@@ -114,7 +127,7 @@ public class TestServiceImpl implements TestService {
     public void deleteTest(UUID testId) {
         Test test = testRepository.findById(testId)
             .orElseThrow(() -> new NoSuchElementException(TEST_NOT_FOUND));
-        
+
         testRepository.delete(test);
     }
 
@@ -123,12 +136,12 @@ public class TestServiceImpl implements TestService {
         Test test = testRepository.findById(testId)
             .orElseThrow(() -> new NoSuchElementException(TEST_NOT_FOUND));
 
-        if ("PUBLISHED".equals(test.getStatus())) {
+        if (PUBLISHED.equals(test.getStatus())) {
             throw new IllegalStateException(TEST_ALREADY_PUBLISHED);
         }
 
         List<Question> questions = questionRepository.findByTestIdOrderByOrderIndex(testId);
-        
+
         if (questions.isEmpty()) {
             throw new IllegalStateException(TEST_MUST_HAVE_QUESTIONS);
         }
@@ -137,7 +150,7 @@ public class TestServiceImpl implements TestService {
             validateQuestion(question);
         }
 
-        test.setStatus("PUBLISHED");
+        test.setStatus(PUBLISHED);
         test.setPublishedAt(LocalDateTime.now());
         testRepository.save(test);
 
@@ -157,7 +170,7 @@ public class TestServiceImpl implements TestService {
             List<Answer> answers = answerRepository.findByQuestionIdOrderByOrderIndex(question.getId());
             List<AnswerResponse> answerResponses = answers.stream()
                 .map(a -> new AnswerResponse(a.getId(), a.getAnswerText(), a.getIsCorrect(), a.getOrderIndex()))
-                .collect(Collectors.toList());
+                .toList();
 
             questionResponses.add(new QuestionResponse(
                 question.getId(),
@@ -190,7 +203,7 @@ public class TestServiceImpl implements TestService {
     @Transactional(readOnly = true)
     public Page<TestResponse> listTests(String status, Boolean isPremium, Pageable pageable) {
         Page<Test> tests;
-        
+
         if (status != null && isPremium != null) {
             tests = testRepository.findByStatusAndIsPremium(status.toUpperCase(), isPremium, pageable);
         } else if (status != null) {
@@ -219,7 +232,7 @@ public class TestServiceImpl implements TestService {
             .orElseThrow(() -> new NoSuchElementException(TEST_NOT_FOUND));
 
         List<Question> questions = questionRepository.findByTestIdOrderByOrderIndex(testId);
-        
+
         int questionCount = questions.size();
         int totalScore = questions.stream().mapToInt(Question::getScore).sum();
 
@@ -243,79 +256,87 @@ public class TestServiceImpl implements TestService {
 
         questionRepository.save(question);
 
-        if ("CLOSED_SINGLE".equals(request.questionType()) ||
-            "CLOSED_MULTIPLE".equals(request.questionType())) {
-            
-            if (request.answers() != null) {
-                for (int i = 0; i < request.answers().size(); i++) {
-                    CreateAnswerRequest aReq = request.answers().get(i);
-                    Answer answer = Answer.builder()
-                        .questionId(question.getId())
-                        .answerText(aReq.answerText())
-                        .isCorrect(aReq.isCorrect())
-                        .orderIndex(aReq.orderIndex() != null ? aReq.orderIndex() : i)
-                        .build();
-                    answerRepository.save(answer);
-                }
+        if ((CLOSED_SINGLE.equals(request.questionType()) ||
+            CLOSED_MULTIPLE.equals(request.questionType())) && request.answers() != null) {
+            for (int i = 0; i < request.answers().size(); i++) {
+                CreateAnswerRequest aReq = request.answers().get(i);
+                Answer answer = Answer.builder()
+                    .questionId(question.getId())
+                    .answerText(aReq.answerText())
+                    .isCorrect(aReq.isCorrect())
+                    .orderIndex(aReq.orderIndex() != null ? aReq.orderIndex() : i)
+                    .build();
+                answerRepository.save(answer);
             }
         }
     }
 
     private void validateQuestionRequest(CreateQuestionRequest request) {
-        if ("CLOSED_SINGLE".equals(request.questionType())) {
-            if (request.answers() == null || request.answers().isEmpty()) {
-                throw new IllegalArgumentException("Closed-single question must have answers");
-            }
-            long correctCount = request.answers().stream().filter(CreateAnswerRequest::isCorrect).count();
-            if (correctCount != 1) {
-                throw new IllegalArgumentException(CLOSED_SINGLE_ONE_CORRECT);
-            }
-        } else if ("CLOSED_MULTIPLE".equals(request.questionType())) {
-            if (request.answers() == null || request.answers().isEmpty()) {
-                throw new IllegalArgumentException("Closed-multiple question must have answers");
-            }
-            long correctCount = request.answers().stream().filter(CreateAnswerRequest::isCorrect).count();
-            if (correctCount < 1) {
-                throw new IllegalArgumentException(CLOSED_MULTIPLE_AT_LEAST_ONE);
-            }
+        if (CLOSED_SINGLE.equals(request.questionType())) {
+            validateClosedSingleRequest(request);
+        } else if (CLOSED_MULTIPLE.equals(request.questionType())) {
+            validateClosedMultipleRequest(request);
         } else if ("OPEN_TEXT".equals(request.questionType())) {
-            if (request.correctAnswer() == null || request.correctAnswer().isBlank()) {
-                throw new IllegalArgumentException(OPEN_TEXT_REQUIRES_ANSWER);
-            }
+            validateOpenTextRequest(request);
+        }
+    }
+
+    private void validateClosedSingleRequest(CreateQuestionRequest request) {
+        if (request.answers() == null || request.answers().isEmpty()) {
+            throw new IllegalArgumentException("Closed-single question must have answers");
+        }
+        long correctCount = request.answers().stream().filter(CreateAnswerRequest::isCorrect).count();
+        if (correctCount != 1) {
+            throw new IllegalArgumentException(CLOSED_SINGLE_ONE_CORRECT);
+        }
+    }
+
+    private void validateClosedMultipleRequest(CreateQuestionRequest request) {
+        if (request.answers() == null || request.answers().isEmpty()) {
+            throw new IllegalArgumentException("Closed-multiple question must have answers");
+        }
+        long correctCount = request.answers().stream().filter(CreateAnswerRequest::isCorrect).count();
+        if (correctCount < 1) {
+            throw new IllegalArgumentException(CLOSED_MULTIPLE_AT_LEAST_ONE);
+        }
+    }
+
+    private void validateOpenTextRequest(CreateQuestionRequest request) {
+        if (request.correctAnswer() == null || request.correctAnswer().isBlank()) {
+            throw new IllegalArgumentException(OPEN_TEXT_REQUIRES_ANSWER);
         }
     }
 
     private void validateQuestion(Question question) {
-        if ("CLOSED_SINGLE".equals(question.getQuestionType())) {
+        if (CLOSED_SINGLE.equals(question.getQuestionType())) {
             List<Answer> answers = answerRepository.findByQuestionIdAndIsCorrect(question.getId(), true);
             if (answers.size() != 1) {
                 throw new IllegalArgumentException(CLOSED_SINGLE_ONE_CORRECT);
             }
-        } else if ("CLOSED_MULTIPLE".equals(question.getQuestionType())) {
+        } else if (CLOSED_MULTIPLE.equals(question.getQuestionType())) {
             List<Answer> answers = answerRepository.findByQuestionIdAndIsCorrect(question.getId(), true);
             if (answers.isEmpty()) {
                 throw new IllegalArgumentException(CLOSED_MULTIPLE_AT_LEAST_ONE);
             }
-        } else if ("OPEN_TEXT".equals(question.getQuestionType())) {
-            if (question.getCorrectAnswer() == null || question.getCorrectAnswer().isBlank()) {
-                throw new IllegalArgumentException(OPEN_TEXT_REQUIRES_ANSWER);
-            }
+        } else if ("OPEN_TEXT".equals(question.getQuestionType()) && (question.getCorrectAnswer() == null || question.getCorrectAnswer().isBlank())) {
+            throw new IllegalArgumentException(OPEN_TEXT_REQUIRES_ANSWER);
         }
+
     }
 
     @Override
     public String uploadQuestionImage(UUID questionId, MultipartFile file) {
         Question question = questionRepository.findById(questionId)
             .orElseThrow(() -> new NoSuchElementException(QUESTION_NOT_FOUND));
-        
+
         if (question.getImageUrl() != null) {
             imageUploadService.deleteImage(question.getImageUrl());
         }
-        
+
         String imageUrl = imageUploadService.uploadImage(file, "question-images");
         question.setImageUrl(imageUrl);
         questionRepository.save(question);
-        
+
         return imageUrl;
     }
 
@@ -323,7 +344,7 @@ public class TestServiceImpl implements TestService {
     public void deleteQuestionImage(UUID questionId) {
         Question question = questionRepository.findById(questionId)
             .orElseThrow(() -> new NoSuchElementException(QUESTION_NOT_FOUND));
-        
+
         if (question.getImageUrl() != null) {
             imageUploadService.deleteImage(question.getImageUrl());
             question.setImageUrl(null);
@@ -341,11 +362,11 @@ public class TestServiceImpl implements TestService {
             .orElseThrow(() -> new NoSuchElementException(ROLE_NOT_FOUND));
 
         Boolean isPremiumFilter = null;
-        if (!user.getIsPremium() && !role.getTitle().equals("ADMIN")) {
+        if (!Boolean.TRUE.equals(user.getIsPremium()) && !"ADMIN".equals(role.getTitle())) {
             isPremiumFilter = false;
         }
 
-        return listTests("PUBLISHED", isPremiumFilter, pageable);
+        return listTests(PUBLISHED, isPremiumFilter, pageable);
     }
 
     @Override
@@ -359,7 +380,7 @@ public class TestServiceImpl implements TestService {
 
         TestDetailResponse test = getTest(testId);
 
-        if (test.isPremium() && !user.getIsPremium() && !role.getTitle().equals("ADMIN")) {
+        if (Boolean.TRUE.equals(test.isPremium()) && !Boolean.TRUE.equals(user.getIsPremium()) && !"ADMIN".equals(role.getTitle())) {
             throw new IllegalStateException(CANNOT_START_PREMIUM_TEST);
         }
 

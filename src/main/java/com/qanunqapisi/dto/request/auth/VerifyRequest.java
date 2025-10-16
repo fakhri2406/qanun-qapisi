@@ -8,7 +8,8 @@ public record VerifyRequest(
     @Email(message = "Invalid email format")
     @NotBlank(message = "Email is required")
     String email,
-    
+
     @NotNull(message = "Verification code is required")
     Integer code
-) {}
+) {
+}

@@ -14,4 +14,5 @@ public record AdminUserResponse(
     String role,
     LocalDateTime lastLoginAt,
     LocalDateTime createdAt
-) {}
+) {
+}

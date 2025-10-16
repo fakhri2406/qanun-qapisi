@@ -1,34 +1,33 @@
 package com.qanunqapisi.external.cloudinary;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.UUID;
-
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
+import com.qanunqapisi.exception.ImageUploadException;
+import com.qanunqapisi.util.ErrorMessages;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.cloudinary.Cloudinary;
-import com.cloudinary.utils.ObjectUtils;
-import com.qanunqapisi.util.ErrorMessages;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ImageUploadService {
-    private final Cloudinary cloudinary;
-    
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
+    private static final long MAX_FILE_SIZE = 5L * 1024 * 1024;
     private static final String[] ALLOWED_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"};
+
+    private final Cloudinary cloudinary;
 
     public String uploadImage(MultipartFile file, String folder) {
         validateFile(file);
-        
+
         try {
             String publicId = folder + "/" + UUID.randomUUID().toString();
-            
+
             @SuppressWarnings("unchecked")
             Map<String, Object> uploadResult = cloudinary.uploader().upload(
                 file.getBytes(),
@@ -42,13 +41,13 @@ public class ImageUploadService {
                     )
                 )
             );
-            
+
             String imageUrl = (String) uploadResult.get("secure_url");
             log.info("Image uploaded successfully to Cloudinary: {}", imageUrl);
             return imageUrl;
         } catch (IOException e) {
             log.error("Failed to upload image to Cloudinary", e);
-            throw new RuntimeException(ErrorMessages.UPLOAD_FAILED, e);
+            throw new ImageUploadException(ErrorMessages.UPLOAD_FAILED, e);
         }
     }
 
@@ -91,7 +90,7 @@ public class ImageUploadService {
         if (imageUrl == null || !imageUrl.contains("cloudinary.com")) {
             return null;
         }
-        
+
         try {
             String[] parts = imageUrl.split("/upload/");
             if (parts.length == 2) {
@@ -112,7 +111,7 @@ public class ImageUploadService {
         } catch (Exception e) {
             log.warn("Failed to extract public_id from URL: {}", imageUrl, e);
         }
-        
+
         return null;
     }
 }

@@ -7,4 +7,5 @@ public record ChangeEmailRequest(
     @Email(message = "Invalid email format")
     @NotBlank(message = "New email is required")
     String newEmail
-) {}
+) {
+}

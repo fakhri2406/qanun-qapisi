@@ -1,14 +1,12 @@
 package com.qanunqapisi.service.impl;
 
-import org.springframework.stereotype.Service;
-
 import com.qanunqapisi.dto.response.admin.DashboardStatsResponse;
 import com.qanunqapisi.repository.TestAttemptRepository;
 import com.qanunqapisi.repository.TestRepository;
 import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.service.DashboardService;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor

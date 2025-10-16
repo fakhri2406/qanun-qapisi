@@ -14,4 +14,5 @@ public record ProfileResponse(
     String role,
     LocalDateTime lastLoginAt,
     LocalDateTime createdAt
-) {}
+) {
+}

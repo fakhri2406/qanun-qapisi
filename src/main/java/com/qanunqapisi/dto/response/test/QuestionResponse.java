@@ -12,4 +12,5 @@ public record QuestionResponse(
     Integer orderIndex,
     String correctAnswer,
     List<AnswerResponse> answers
-) {}
+) {
+}

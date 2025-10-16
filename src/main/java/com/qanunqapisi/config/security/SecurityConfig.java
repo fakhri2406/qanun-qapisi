@@ -1,7 +1,9 @@
 package com.qanunqapisi.config.security;
 
-import java.util.List;
-
+import com.qanunqapisi.config.jwt.JwtAuthenticationFilter;
+import com.qanunqapisi.config.jwt.RestAccessDeniedHandler;
+import com.qanunqapisi.config.jwt.RestAuthenticationEntryPoint;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -16,11 +18,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.qanunqapisi.config.jwt.JwtAuthenticationFilter;
-import com.qanunqapisi.config.jwt.RestAccessDeniedHandler;
-import com.qanunqapisi.config.jwt.RestAuthenticationEntryPoint;
-
-import lombok.RequiredArgsConstructor;
+import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
@@ -86,7 +84,7 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

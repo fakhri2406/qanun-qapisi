@@ -16,4 +16,5 @@ public record QuestionResultResponse(
     List<UUID> correctAnswerIds,
     String correctAnswer,
     List<AnswerResponse> allAnswers
-) {}
+) {
+}

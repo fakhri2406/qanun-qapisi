@@ -14,4 +14,5 @@ public record TestResponse(
     LocalDateTime publishedAt,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
-) {}
+) {
+}

@@ -1,32 +1,61 @@
 package com.qanunqapisi.service.impl;
 
-import com.qanunqapisi.domain.*;
-import com.qanunqapisi.domain.enums.AttemptStatus;
-import com.qanunqapisi.dto.request.test.SubmitAnswerRequest;
-import com.qanunqapisi.dto.request.test.SubmitTestRequest;
-import com.qanunqapisi.dto.response.test.*;
-import com.qanunqapisi.repository.*;
-import com.qanunqapisi.service.TestAttemptService;
-import com.qanunqapisi.util.ErrorMessages;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.qanunqapisi.domain.Answer;
+import com.qanunqapisi.domain.Question;
+import com.qanunqapisi.domain.Role;
+import com.qanunqapisi.domain.Test;
+import com.qanunqapisi.domain.TestAttempt;
+import com.qanunqapisi.domain.User;
+import com.qanunqapisi.domain.UserAnswer;
+import com.qanunqapisi.dto.request.test.SubmitAnswerRequest;
+import com.qanunqapisi.dto.request.test.SubmitTestRequest;
+import com.qanunqapisi.dto.response.test.AnswerResponse;
+import com.qanunqapisi.dto.response.test.QuestionResultResponse;
+import com.qanunqapisi.dto.response.test.TestAttemptResponse;
+import com.qanunqapisi.dto.response.test.TestResultResponse;
+import com.qanunqapisi.repository.AnswerRepository;
+import com.qanunqapisi.repository.QuestionRepository;
+import com.qanunqapisi.repository.RoleRepository;
+import com.qanunqapisi.repository.TestAttemptRepository;
+import com.qanunqapisi.repository.TestRepository;
+import com.qanunqapisi.repository.UserAnswerRepository;
+import com.qanunqapisi.repository.UserRepository;
+import com.qanunqapisi.service.TestAttemptService;
+import static com.qanunqapisi.util.ErrorMessages.ATTEMPT_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.ATTEMPT_NOT_IN_PROGRESS;
+import static com.qanunqapisi.util.ErrorMessages.CANNOT_START_PREMIUM_TEST;
+import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_PUBLISHED;
+import static com.qanunqapisi.util.ErrorMessages.USER_NOT_FOUND;
 
-import static com.qanunqapisi.util.ErrorMessages.*;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
 @Slf4j
 public class TestAttemptServiceImpl implements TestAttemptService {
+    private static final String IN_PROGRESS = "IN_PROGRESS";
+    private static final String COMPLETED = "COMPLETED";
+
     private final TestRepository testRepository;
     private final QuestionRepository questionRepository;
     private final AnswerRepository answerRepository;
@@ -51,8 +80,8 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         // Check premium access
         Role role = roleRepository.findById(user.getRoleId())
             .orElseThrow(() -> new NoSuchElementException(ROLE_NOT_FOUND));
-        
-        if (test.getIsPremium() && !user.getIsPremium() && !role.getTitle().equals("ADMIN")) {
+
+        if (Boolean.TRUE.equals(test.getIsPremium()) && !Boolean.TRUE.equals(user.getIsPremium()) && !"ADMIN".equals(role.getTitle())) {
             throw new IllegalStateException(CANNOT_START_PREMIUM_TEST);
         }
 
@@ -62,7 +91,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             .testId(testId)
             .totalScore(0)
             .maxPossibleScore(test.getTotalPossibleScore())
-            .status(AttemptStatus.IN_PROGRESS)
+            .status(IN_PROGRESS)
             .startedAt(LocalDateTime.now())
             .build();
 
@@ -91,7 +120,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
 
         // Find in-progress attempt
         TestAttempt attempt = testAttemptRepository
-            .findByUserIdAndTestIdAndStatus(user.getId(), testId, AttemptStatus.IN_PROGRESS)
+            .findByUserIdAndTestIdAndStatus(user.getId(), testId, IN_PROGRESS)
             .orElseThrow(() -> new NoSuchElementException(ATTEMPT_NOT_FOUND));
 
         List<Question> questions = questionRepository.findByTestIdOrderByOrderIndex(testId);
@@ -110,7 +139,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
 
         // Update attempt
         attempt.setTotalScore(totalScore);
-        attempt.setStatus(AttemptStatus.COMPLETED);
+        attempt.setStatus(COMPLETED);
         attempt.setSubmittedAt(LocalDateTime.now());
         testAttemptRepository.save(attempt);
 
@@ -149,7 +178,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 attempt.getStartedAt(),
                 attempt.getSubmittedAt()
             ))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
@@ -158,7 +187,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         TestAttempt attempt = testAttemptRepository.findById(attemptId)
             .orElseThrow(() -> new NoSuchElementException(ATTEMPT_NOT_FOUND));
 
-        if (attempt.getStatus() != AttemptStatus.COMPLETED) {
+        if (!COMPLETED.equals(attempt.getStatus())) {
             throw new IllegalStateException(ATTEMPT_NOT_IN_PROGRESS);
         }
 
@@ -190,38 +219,12 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     }
 
     private QuestionResultResponse scoreQuestion(Question question, SubmitAnswerRequest userAnswer, UUID attemptId) {
-        boolean isCorrect = false;
-        int scoreEarned = 0;
-        List<UUID> selectedAnswerIds = null;
-        String openTextAnswer = null;
+        List<UUID> selectedAnswerIds = userAnswer != null ? userAnswer.selectedAnswerIds() : null;
+        String openTextAnswer = userAnswer != null ? userAnswer.openTextAnswer() : null;
 
-        if ("CLOSED_SINGLE".equals(question.getQuestionType())) {
-            selectedAnswerIds = userAnswer != null ? userAnswer.selectedAnswerIds() : null;
-            if (selectedAnswerIds != null && selectedAnswerIds.size() == 1) {
-                List<Answer> correctAnswers = answerRepository.findByQuestionIdAndIsCorrect(question.getId(), true);
-                isCorrect = correctAnswers.size() == 1 && correctAnswers.get(0).getId().equals(selectedAnswerIds.get(0));
-            }
-        } else if ("CLOSED_MULTIPLE".equals(question.getQuestionType())) {
-            selectedAnswerIds = userAnswer != null ? userAnswer.selectedAnswerIds() : null;
-            if (selectedAnswerIds != null && !selectedAnswerIds.isEmpty()) {
-                List<Answer> correctAnswers = answerRepository.findByQuestionIdAndIsCorrect(question.getId(), true);
-                Set<UUID> correctIds = correctAnswers.stream().map(Answer::getId).collect(Collectors.toSet());
-                Set<UUID> selectedIds = new HashSet<>(selectedAnswerIds);
-                isCorrect = correctIds.equals(selectedIds);
-            }
-        } else if ("OPEN_TEXT".equals(question.getQuestionType())) {
-            openTextAnswer = userAnswer != null ? userAnswer.openTextAnswer() : null;
-            if (openTextAnswer != null) {
-                String normalized = normalizeText(openTextAnswer);
-                isCorrect = normalized.equals(question.getCorrectAnswer());
-            }
-        }
+        boolean isCorrect = evaluateAnswer(question, selectedAnswerIds, openTextAnswer);
+        int scoreEarned = isCorrect ? question.getScore() : 0;
 
-        if (isCorrect) {
-            scoreEarned = question.getScore();
-        }
-
-        // Save user answer
         UserAnswer answer = UserAnswer.builder()
             .testAttemptId(attemptId)
             .questionId(question.getId())
@@ -236,19 +239,56 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         return buildQuestionResult(question, answer);
     }
 
+    private boolean evaluateAnswer(Question question, List<UUID> selectedAnswerIds, String openTextAnswer) {
+        if ("CLOSED_SINGLE".equals(question.getQuestionType())) {
+            return evaluateSingleChoice(question, selectedAnswerIds);
+        } else if ("CLOSED_MULTIPLE".equals(question.getQuestionType())) {
+            return evaluateMultipleChoice(question, selectedAnswerIds);
+        } else if ("OPEN_TEXT".equals(question.getQuestionType())) {
+            return evaluateOpenText(question, openTextAnswer);
+        }
+        return false;
+    }
+
+    private boolean evaluateSingleChoice(Question question, List<UUID> selectedAnswerIds) {
+        if (selectedAnswerIds == null || selectedAnswerIds.size() != 1) {
+            return false;
+        }
+        List<Answer> correctAnswers = answerRepository.findByQuestionIdAndIsCorrect(question.getId(), true);
+        return correctAnswers.size() == 1 && correctAnswers.get(0).getId().equals(selectedAnswerIds.get(0));
+    }
+
+    private boolean evaluateMultipleChoice(Question question, List<UUID> selectedAnswerIds) {
+        if (selectedAnswerIds == null || selectedAnswerIds.isEmpty()) {
+            return false;
+        }
+        List<Answer> correctAnswers = answerRepository.findByQuestionIdAndIsCorrect(question.getId(), true);
+        Set<UUID> correctIds = correctAnswers.stream().map(Answer::getId).collect(Collectors.toSet());
+        Set<UUID> selectedIds = new HashSet<>(selectedAnswerIds);
+        return correctIds.equals(selectedIds);
+    }
+
+    private boolean evaluateOpenText(Question question, String openTextAnswer) {
+        if (openTextAnswer == null) {
+            return false;
+        }
+        String normalized = normalizeText(openTextAnswer);
+        return normalized.equals(question.getCorrectAnswer());
+    }
+
     private QuestionResultResponse buildQuestionResult(Question question, UserAnswer userAnswer) {
         List<Answer> allAnswers = answerRepository.findByQuestionIdOrderByOrderIndex(question.getId());
         List<AnswerResponse> answerResponses = allAnswers.stream()
             .map(a -> new AnswerResponse(a.getId(), a.getAnswerText(), a.getIsCorrect(), a.getOrderIndex()))
-            .collect(Collectors.toList());
+            .toList();
 
         List<UUID> correctAnswerIds = null;
-        if ("CLOSED_SINGLE".equals(question.getQuestionType()) || 
+        if ("CLOSED_SINGLE".equals(question.getQuestionType()) ||
             "CLOSED_MULTIPLE".equals(question.getQuestionType())) {
             correctAnswerIds = allAnswers.stream()
                 .filter(Answer::getIsCorrect)
                 .map(Answer::getId)
-                .collect(Collectors.toList());
+                .toList();
         }
 
         List<UUID> selectedAnswerIds = userAnswer != null ? userAnswer.getSelectedAnswerIds() : null;
@@ -259,7 +299,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             question.getQuestionText(),
             question.getImageUrl(),
             question.getScore(),
-            userAnswer != null ? userAnswer.getIsCorrect() : false,
+            userAnswer != null && Boolean.TRUE.equals(userAnswer.getIsCorrect()),
             userAnswer != null ? userAnswer.getScoreEarned() : 0,
             selectedAnswerIds,
             userAnswer != null ? userAnswer.getOpenTextAnswer() : null,

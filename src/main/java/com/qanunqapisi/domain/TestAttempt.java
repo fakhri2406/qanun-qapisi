@@ -3,12 +3,8 @@ package com.qanunqapisi.domain;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import com.qanunqapisi.domain.enums.AttemptStatus;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -43,9 +39,8 @@ public class TestAttempt extends BaseEntity {
     @Column(name = "max_possible_score", nullable = false)
     private Integer maxPossibleScore;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, columnDefinition = "attempt_status")
-    private AttemptStatus status;
+    @Column(name = "status", nullable = false)
+    private String status;
 
     @Column(name = "started_at", nullable = false)
     private LocalDateTime startedAt;

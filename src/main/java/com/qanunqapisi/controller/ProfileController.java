@@ -1,29 +1,20 @@
 package com.qanunqapisi.controller;
 
-import java.util.Map;
-
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
-
 import com.qanunqapisi.dto.request.profile.ChangeEmailRequest;
 import com.qanunqapisi.dto.request.profile.ChangePasswordRequest;
 import com.qanunqapisi.dto.request.profile.UpdateProfileRequest;
 import com.qanunqapisi.dto.request.profile.VerifyEmailChangeRequest;
 import com.qanunqapisi.dto.response.profile.ProfileResponse;
 import com.qanunqapisi.service.ProfileService;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/profile")

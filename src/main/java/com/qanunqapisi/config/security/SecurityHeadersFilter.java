@@ -1,14 +1,13 @@
 package com.qanunqapisi.config.security;
 
-import java.io.IOException;
-
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
 
 @Component
 public class SecurityHeadersFilter extends OncePerRequestFilter {
@@ -22,7 +21,7 @@ public class SecurityHeadersFilter extends OncePerRequestFilter {
         response.setHeader("X-XSS-Protection", "1; mode=block");
         response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
         response.setHeader("Referrer-Policy", "no-referrer");
-        
+
         filterChain.doFilter(request, response);
     }
 }

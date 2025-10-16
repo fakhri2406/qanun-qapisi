@@ -1,8 +1,5 @@
 package com.qanunqapisi.config.openapi;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
@@ -10,13 +7,15 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class OpenApiConfig {
     @Bean
     public OpenAPI customOpenAPI() {
         final String securitySchemeName = "bearerAuth";
-        
+
         return new OpenAPI()
             .info(new Info()
                 .title("Qanun Qapısı API")
@@ -24,7 +23,7 @@ public class OpenApiConfig {
                 .description("API documentation for Qanun Qapısı - Azerbaijani Law Exam Prep Application")
                 .contact(new Contact()
                     .name("Qanun Qapısı Team")
-                    .email("support@qanunqapisi.az"))
+                    .email("qanunqapisi@gmail.com"))
                 .license(new License()
                     .name("Private")
                     .url("https://qanunqapisi.az")))

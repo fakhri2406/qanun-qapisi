@@ -1,0 +1,3 @@
+ALTER TABLE test_attempts ALTER COLUMN status TYPE VARCHAR(20);
+
+DROP TYPE IF EXISTS attempt_status CASCADE;

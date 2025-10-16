@@ -1,15 +1,14 @@
 package com.qanunqapisi.external.email;
 
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.stereotype.Service;
-
+import com.qanunqapisi.exception.EmailSendException;
 import com.qanunqapisi.util.ErrorMessages;
-
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -21,17 +20,17 @@ public class EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            
+
             helper.setFrom(from);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(body, isHtml);
-            
+
             mailSender.send(message);
             log.info("Email sent successfully to: {}", to);
         } catch (MessagingException e) {
             log.error("Failed to send email to: {}", to, e);
-            throw new RuntimeException(ErrorMessages.FAILED_TO_SEND_EMAIL, e);
+            throw new EmailSendException(ErrorMessages.FAILED_TO_SEND_EMAIL, e);
         }
     }
 }

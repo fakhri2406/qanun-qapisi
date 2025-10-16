@@ -1,31 +1,15 @@
 package com.qanunqapisi.service.impl;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.NoSuchElementException;
-
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.qanunqapisi.config.email.EmailProperties;
 import com.qanunqapisi.config.jwt.JwtProperties;
 import com.qanunqapisi.domain.RefreshToken;
 import com.qanunqapisi.domain.RevokedToken;
 import com.qanunqapisi.domain.Role;
 import com.qanunqapisi.domain.User;
-import com.qanunqapisi.dto.request.auth.ConfirmResetPasswordRequest;
-import com.qanunqapisi.dto.request.auth.LoginRequest;
-import com.qanunqapisi.dto.request.auth.RefreshTokenRequest;
-import com.qanunqapisi.dto.request.auth.ResendVerificationRequest;
-import com.qanunqapisi.dto.request.auth.ResetPasswordRequest;
-import com.qanunqapisi.dto.request.auth.SignupRequest;
-import com.qanunqapisi.dto.request.auth.VerifyRequest;
+import com.qanunqapisi.dto.request.auth.*;
 import com.qanunqapisi.dto.response.auth.AuthResponse;
 import com.qanunqapisi.dto.response.auth.MeResponse;
+import com.qanunqapisi.exception.EmailSendException;
 import com.qanunqapisi.external.email.EmailService;
 import com.qanunqapisi.external.email.EmailTemplateService;
 import com.qanunqapisi.repository.RefreshTokenRepository;
@@ -33,28 +17,22 @@ import com.qanunqapisi.repository.RevokedTokenRepository;
 import com.qanunqapisi.repository.RoleRepository;
 import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.service.AuthService;
-import static com.qanunqapisi.util.ErrorMessages.ACCOUNT_LOCKED;
-import static com.qanunqapisi.util.ErrorMessages.ACCOUNT_NOT_VERIFIED;
-import static com.qanunqapisi.util.ErrorMessages.EMAIL_IN_USE;
-import static com.qanunqapisi.util.ErrorMessages.FAILED_TO_SEND_EMAIL;
-import static com.qanunqapisi.util.ErrorMessages.INVALID_CREDENTIALS;
-import static com.qanunqapisi.util.ErrorMessages.INVALID_REFRESH_TOKEN;
-import static com.qanunqapisi.util.ErrorMessages.NOT_AUTHENTICATED;
-import static com.qanunqapisi.util.ErrorMessages.PASSWORD_RESET_EXPIRED;
-import static com.qanunqapisi.util.ErrorMessages.PASSWORD_RESET_INVALID;
-import static com.qanunqapisi.util.ErrorMessages.REFRESH_TOKEN_EXPIRED;
-import static com.qanunqapisi.util.ErrorMessages.RESEND_COOLDOWN;
-import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.USER_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.VERIFICATION_EXPIRED;
-import static com.qanunqapisi.util.ErrorMessages.VERIFICATION_INVALID;
-import static com.qanunqapisi.util.ErrorMessages.VERIFICATION_LOCKED;
 import com.qanunqapisi.util.Hasher;
 import com.qanunqapisi.util.TokenGenerator;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.NoSuchElementException;
+
+import static com.qanunqapisi.util.ErrorMessages.*;
 
 @Service
 @Transactional
@@ -198,7 +176,7 @@ public class AuthServiceImpl implements AuthService {
             emailService.sendEmail(emailProperties.getFrom(), user.getEmail(), subject, body, true);
         } catch (RuntimeException ex) {
             log.error("Failed to send verification email", ex);
-            throw new RuntimeException(FAILED_TO_SEND_EMAIL, ex);
+            throw new EmailSendException(FAILED_TO_SEND_EMAIL, ex);
         }
     }
 
@@ -311,7 +289,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(request.email())
             .orElseThrow(() -> new NoSuchElementException(USER_NOT_FOUND));
 
-        if (user.getPasswordResetLockedUntil() != null && 
+        if (user.getPasswordResetLockedUntil() != null &&
             user.getPasswordResetLockedUntil().isAfter(LocalDateTime.now())) {
             throw new IllegalStateException("Password reset locked. Try later");
         }
@@ -334,7 +312,7 @@ public class AuthServiceImpl implements AuthService {
             emailService.sendEmail(emailProperties.getFrom(), user.getEmail(), subject, body, true);
         } catch (RuntimeException ex) {
             log.error("Failed to send password reset email", ex);
-            throw new RuntimeException(FAILED_TO_SEND_EMAIL, ex);
+            throw new EmailSendException(FAILED_TO_SEND_EMAIL, ex);
         }
     }
 
@@ -352,7 +330,7 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException(PASSWORD_RESET_INVALID);
         }
 
-        if (user.getPasswordResetExpiresAt() == null || 
+        if (user.getPasswordResetExpiresAt() == null ||
             user.getPasswordResetExpiresAt().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException(PASSWORD_RESET_EXPIRED);
         }

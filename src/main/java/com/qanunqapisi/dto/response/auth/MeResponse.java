@@ -13,4 +13,5 @@ public record MeResponse(
     Boolean isPremium,
     String role,
     LocalDateTime lastLoginAt
-) {}
+) {
+}

@@ -1,7 +1,5 @@
 package com.qanunqapisi.dto.response.test;
 
-import com.qanunqapisi.domain.enums.AttemptStatus;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -11,7 +9,8 @@ public record TestAttemptResponse(
     String testTitle,
     Integer totalScore,
     Integer maxPossibleScore,
-    AttemptStatus status,
+    String status,
     LocalDateTime startedAt,
     LocalDateTime submittedAt
-) {}
+) {
+}

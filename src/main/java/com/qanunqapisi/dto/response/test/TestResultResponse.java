@@ -13,4 +13,5 @@ public record TestResultResponse(
     LocalDateTime startedAt,
     LocalDateTime submittedAt,
     List<QuestionResultResponse> questionResults
-) {}
+) {
+}

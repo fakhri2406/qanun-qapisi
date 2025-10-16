@@ -9,4 +9,5 @@ public record SubmitTestRequest(
     @NotEmpty(message = "Answers are required")
     @Valid
     List<SubmitAnswerRequest> answers
-) {}
+) {
+}

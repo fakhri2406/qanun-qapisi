@@ -7,4 +7,5 @@ public record AnswerResponse(
     String answerText,
     Boolean isCorrect,
     Integer orderIndex
-) {}
+) {
+}

@@ -63,10 +63,9 @@ public final class ErrorMessages {
     public static final String ATTEMPT_ALREADY_COMPLETED = "Test attempt already completed";
     public static final String ATTEMPT_NOT_IN_PROGRESS = "Test attempt is not in progress";
     public static final String ANSWER_MISMATCH = "Answer does not belong to this test";
-    
+
     // Image Upload
     public static final String INVALID_FILE_TYPE = "Invalid file type. Only images are allowed";
     public static final String FILE_TOO_LARGE = "File size exceeds the maximum allowed limit";
     public static final String UPLOAD_FAILED = "File upload failed";
 }
-

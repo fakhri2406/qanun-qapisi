@@ -1,21 +1,19 @@
 package com.qanunqapisi.config.jwt;
 
-import java.util.Collections;
-import java.util.NoSuchElementException;
-
+import com.qanunqapisi.domain.Role;
+import com.qanunqapisi.domain.User;
+import com.qanunqapisi.repository.RoleRepository;
+import com.qanunqapisi.repository.UserRepository;
+import com.qanunqapisi.util.ErrorMessages;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.qanunqapisi.domain.Role;
-import com.qanunqapisi.domain.User;
-import com.qanunqapisi.repository.RoleRepository;
-import com.qanunqapisi.repository.UserRepository;
-import com.qanunqapisi.util.ErrorMessages;
-
-import lombok.RequiredArgsConstructor;
+import java.util.Collections;
+import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor

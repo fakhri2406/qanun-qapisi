@@ -1,10 +1,8 @@
 package com.qanunqapisi.util;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
-
+import com.qanunqapisi.dto.response.error.ErrorResponse;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,20 +20,22 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
-import com.qanunqapisi.dto.response.error.ErrorResponse;
-
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final String VALIDATION_FAILED_MESSAGE = "Validation failed";
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(error ->
             errors.put(error.getField(), error.getDefaultMessage())
         );
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Validation failed", errors);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, VALIDATION_FAILED_MESSAGE, errors);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -45,7 +45,7 @@ public class GlobalExceptionHandler {
             String path = violation.getPropertyPath().toString();
             errors.put(path, violation.getMessage());
         }
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Validation failed", errors);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, VALIDATION_FAILED_MESSAGE, errors);
     }
 
     @ExceptionHandler(BindException.class)
@@ -54,7 +54,7 @@ public class GlobalExceptionHandler {
         ex.getBindingResult().getFieldErrors().forEach(error ->
             errors.put(error.getField(), error.getDefaultMessage())
         );
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Validation failed", errors);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, VALIDATION_FAILED_MESSAGE, errors);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

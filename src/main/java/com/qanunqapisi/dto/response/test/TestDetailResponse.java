@@ -16,4 +16,5 @@ public record TestDetailResponse(
     List<QuestionResponse> questions,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
-) {}
+) {
+}

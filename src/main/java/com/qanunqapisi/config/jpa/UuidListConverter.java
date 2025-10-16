@@ -1,14 +1,15 @@
 package com.qanunqapisi.config.jpa;
 
+import com.qanunqapisi.exception.DatabaseConversionException;
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
+
 import java.sql.Array;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-
-import jakarta.persistence.AttributeConverter;
-import jakarta.persistence.Converter;
 
 @Converter
 public class UuidListConverter implements AttributeConverter<List<UUID>, Object> {
@@ -27,17 +28,16 @@ public class UuidListConverter implements AttributeConverter<List<UUID>, Object>
         }
 
         try {
-            if (dbData instanceof Array) {
-                Array array = (Array) dbData;
+            if (dbData instanceof Array array) {
                 Object[] objects = (Object[]) array.getArray();
                 return Arrays.stream(objects)
-                    .map(obj -> (UUID) obj)
+                    .map(UUID.class::cast)
                     .toList();
-            } else if (dbData instanceof UUID[]) {
-                return Arrays.asList((UUID[]) dbData);
+            } else if (dbData instanceof UUID[] uuidArray) {
+                return Arrays.asList(uuidArray);
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to convert UUID array from database", e);
+            throw new DatabaseConversionException("Failed to convert UUID array from database", e);
         }
 
         return new ArrayList<>();

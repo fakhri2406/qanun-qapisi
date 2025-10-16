@@ -1,17 +1,16 @@
 package com.qanunqapisi.config.security;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
@@ -26,7 +25,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String key = clientIp + "_" + (System.currentTimeMillis() / 60000);
 
         RequestCounter counter = requestCounts.computeIfAbsent(key, k -> new RequestCounter());
-        
+
         if (counter.increment() > MAX_REQUESTS_PER_MINUTE) {
             response.setStatus(429);
             response.getWriter().write("Too many requests. Please try again later.");

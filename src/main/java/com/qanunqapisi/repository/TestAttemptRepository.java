@@ -10,13 +10,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.qanunqapisi.domain.TestAttempt;
-import com.qanunqapisi.domain.enums.AttemptStatus;
 
 @Repository
 public interface TestAttemptRepository extends JpaRepository<TestAttempt, UUID> {
     List<TestAttempt> findByUserId(UUID userId);
+
     Page<TestAttempt> findByUserId(UUID userId, Pageable pageable);
+
     List<TestAttempt> findByUserIdAndTestId(UUID userId, UUID testId);
-    Optional<TestAttempt> findByUserIdAndTestIdAndStatus(UUID userId, UUID testId, AttemptStatus status);
+
+    Optional<TestAttempt> findByUserIdAndTestIdAndStatus(UUID userId, UUID testId, String status);
+
     long count();
 }
