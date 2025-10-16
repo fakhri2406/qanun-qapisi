@@ -1,0 +1,12 @@
+.git
+.gitignore
+.gradle
+build
+.env
+.env.*
+*.md
+log
+.idea
+*.iml
+.vscode
+node_modules

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            padding: 30px;
+            border: 1px solid #ddd;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+        }
+        .code {
+            background-color: #3498db;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            padding: 15px;
+            text-align: center;
+            border-radius: 5px;
+            margin: 20px 0;
+            letter-spacing: 5px;
+        }
+        .info {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Qanun Qapısı</h1>
+            <p>Email Təsdiqlənməsi</p>
+        </div>
+        
+        <p>Salam,</p>
+        
+        <p>Qanun Qapısı platformasına xoş gəlmisiniz! Email ünvanınızı təsdiqləmək üçün aşağıdakı kodu istifadə edin:</p>
+        
+        <div class="code">{{code}}</div>
+        
+        <div class="info">
+            <p><strong>Diqqət:</strong> Bu kod {{expiry}} dəqiqə ərzində etibarlıdır.</p>
+        </div>
+        
+        <p>Əgər bu hesabı siz yaratmamısınızsa, bu emaili nəzərə almayın.</p>
+        
+        <div class="footer">
+            <p>&copy; {{year}} Qanun Qapısı. Bütün hüquqlar qorunur.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,1 @@
+-- Insertion of default roles and default admin happens in DataInitializer
