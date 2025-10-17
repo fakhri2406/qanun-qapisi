@@ -1,68 +1,200 @@
 package com.qanunqapisi.controller;
 
-import com.qanunqapisi.dto.request.auth.*;
-import com.qanunqapisi.dto.response.auth.AuthResponse;
-import com.qanunqapisi.dto.response.auth.MeResponse;
-import com.qanunqapisi.service.AuthService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.qanunqapisi.dto.request.auth.ConfirmResetPasswordRequest;
+import com.qanunqapisi.dto.request.auth.LoginRequest;
+import com.qanunqapisi.dto.request.auth.RefreshTokenRequest;
+import com.qanunqapisi.dto.request.auth.ResendVerificationRequest;
+import com.qanunqapisi.dto.request.auth.ResetPasswordRequest;
+import com.qanunqapisi.dto.request.auth.SignupRequest;
+import com.qanunqapisi.dto.request.auth.VerifyRequest;
+import com.qanunqapisi.dto.response.auth.AuthResponse;
+import com.qanunqapisi.dto.response.auth.MeResponse;
+import com.qanunqapisi.dto.response.error.ErrorResponse;
+import com.qanunqapisi.service.AuthService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 @Validated
 @RequiredArgsConstructor
+@Tag(name = "Authentication", description = "Authentication and user account management endpoints")
 public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signup")
+    @Operation(
+        summary = "Register a new user",
+        description = "Creates a new user account and sends a verification email with a 6-digit code"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "User registered successfully"),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input or email already exists",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+        )
+    })
     public ResponseEntity<Void> signup(@Valid @RequestBody SignupRequest request) {
         authService.signup(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PostMapping("/verify")
+    @Operation(
+        summary = "Verify email address",
+        description = "Verifies user's email using the 6-digit code and returns JWT tokens"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Email verified successfully"),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid or expired verification code",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+        )
+    })
     public ResponseEntity<AuthResponse> verify(@Valid @RequestBody VerifyRequest request) {
         return ResponseEntity.ok(authService.verify(request));
     }
 
     @PostMapping("/resend")
+    @Operation(
+        summary = "Resend verification email",
+        description = "Sends a new verification code to the user's email"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Verification code sent successfully"),
+        @ApiResponse(
+            responseCode = "400",
+            description = "User not found or already verified",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+        )
+    })
     public ResponseEntity<Void> resend(@Valid @RequestBody ResendVerificationRequest request) {
         authService.resend(request);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/login")
+    @Operation(
+        summary = "User login",
+        description = "Authenticates user and returns access and refresh tokens"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Login successful"),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid credentials or email not verified",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+        )
+    })
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/refresh")
+    @Operation(
+        summary = "Refresh access token",
+        description = "Generates new access and refresh tokens using a valid refresh token"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Token refreshed successfully"),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid or expired refresh token",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+        )
+    })
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         return ResponseEntity.ok(authService.refresh(request));
     }
 
     @PostMapping("/logout")
+    @Operation(
+        summary = "User logout",
+        description = "Revokes the user's access token",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Logout successful"),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+        )
+    })
     public ResponseEntity<Void> logout(@RequestHeader(value = "Authorization", required = false) String authorization) {
         authService.logoutFromHeader(authorization);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/me")
+    @Operation(
+        summary = "Get current user info",
+        description = "Retrieves the authenticated user's profile information",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "User info retrieved successfully"),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+        )
+    })
     public ResponseEntity<MeResponse> me() {
         return ResponseEntity.ok(authService.me());
     }
 
     @PostMapping("/reset-password")
+    @Operation(
+        summary = "Request password reset",
+        description = "Sends a password reset code to the user's email"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Password reset code sent successfully"),
+        @ApiResponse(
+            responseCode = "404",
+            description = "User not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+        )
+    })
     public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/confirm-reset-password")
+    @Operation(
+        summary = "Confirm password reset",
+        description = "Resets the user's password using the reset code"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Password reset successfully"),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid or expired reset code",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+        )
+    })
     public ResponseEntity<Void> confirmResetPassword(@Valid @RequestBody ConfirmResetPasswordRequest request) {
         authService.confirmResetPassword(request);
         return ResponseEntity.ok().build();
