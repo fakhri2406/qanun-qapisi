@@ -1,6 +1,24 @@
 package com.qanunqapisi.service.impl;
 
-import com.qanunqapisi.domain.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.qanunqapisi.domain.Answer;
+import com.qanunqapisi.domain.Question;
+import com.qanunqapisi.domain.Role;
+import com.qanunqapisi.domain.Test;
+import com.qanunqapisi.domain.User;
 import com.qanunqapisi.dto.request.test.CreateAnswerRequest;
 import com.qanunqapisi.dto.request.test.CreateQuestionRequest;
 import com.qanunqapisi.dto.request.test.CreateTestRequest;
@@ -10,26 +28,28 @@ import com.qanunqapisi.dto.response.test.QuestionResponse;
 import com.qanunqapisi.dto.response.test.TestDetailResponse;
 import com.qanunqapisi.dto.response.test.TestResponse;
 import com.qanunqapisi.external.cloudinary.ImageUploadService;
-import com.qanunqapisi.repository.*;
+import com.qanunqapisi.repository.AnswerRepository;
+import com.qanunqapisi.repository.QuestionRepository;
+import com.qanunqapisi.repository.RoleRepository;
+import com.qanunqapisi.repository.TestRepository;
+import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.service.TestService;
+import static com.qanunqapisi.util.ErrorMessages.CANNOT_START_PREMIUM_TEST;
+import static com.qanunqapisi.util.ErrorMessages.CLOSED_MULTIPLE_AT_LEAST_ONE;
+import static com.qanunqapisi.util.ErrorMessages.CLOSED_MULTIPLE_MUST_HAVE_ANSWER;
+import static com.qanunqapisi.util.ErrorMessages.CLOSED_SINGLE_MUST_HAVE_ANSWER;
+import static com.qanunqapisi.util.ErrorMessages.CLOSED_SINGLE_ONE_CORRECT;
+import static com.qanunqapisi.util.ErrorMessages.OPEN_TEXT_REQUIRES_ANSWER;
+import static com.qanunqapisi.util.ErrorMessages.QUESTION_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.TEST_ALREADY_PUBLISHED;
+import static com.qanunqapisi.util.ErrorMessages.TEST_MUST_HAVE_QUESTIONS;
+import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.USER_NOT_FOUND;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.UUID;
-
-import static com.qanunqapisi.util.ErrorMessages.*;
 
 @Service
 @Transactional
@@ -38,7 +58,9 @@ import static com.qanunqapisi.util.ErrorMessages.*;
 public class TestServiceImpl implements TestService {
     private static final String CLOSED_SINGLE = "CLOSED_SINGLE";
     private static final String CLOSED_MULTIPLE = "CLOSED_MULTIPLE";
+    private static final String OPEN_TEXT = "OPEN_TEXT";
     private static final String PUBLISHED = "PUBLISHED";
+    private static final int BASE_MINUTES_PER_QUESTION = 2;
 
     private final TestRepository testRepository;
     private final QuestionRepository questionRepository;
@@ -174,6 +196,7 @@ public class TestServiceImpl implements TestService {
             test.getStatus(),
             test.getQuestionCount(),
             test.getTotalPossibleScore(),
+            calculateEstimatedTime(test.getQuestionCount()),
             test.getPublishedAt(),
             questionResponses,
             test.getCreatedAt(),
@@ -202,6 +225,7 @@ public class TestServiceImpl implements TestService {
             test.getStatus(),
             test.getQuestionCount(),
             test.getTotalPossibleScore(),
+            calculateEstimatedTime(test.getQuestionCount()),
             test.getPublishedAt(),
             test.getCreatedAt(),
             test.getUpdatedAt()
@@ -254,12 +278,15 @@ public class TestServiceImpl implements TestService {
     }
 
     private void validateQuestionRequest(CreateQuestionRequest request) {
-        if (CLOSED_SINGLE.equals(request.questionType())) {
-            validateClosedSingleRequest(request);
-        } else if (CLOSED_MULTIPLE.equals(request.questionType())) {
-            validateClosedMultipleRequest(request);
-        } else if ("OPEN_TEXT".equals(request.questionType())) {
-            validateOpenTextRequest(request);
+        String questionType = request.questionType();
+        
+        switch (questionType) {
+            case CLOSED_SINGLE -> validateClosedSingleRequest(request);
+            case CLOSED_MULTIPLE -> validateClosedMultipleRequest(request);
+            case OPEN_TEXT -> validateOpenTextRequest(request);
+            default -> {
+                // No validation needed for other types
+            }
         }
     }
 
@@ -300,7 +327,7 @@ public class TestServiceImpl implements TestService {
             if (answers.isEmpty()) {
                 throw new IllegalArgumentException(CLOSED_MULTIPLE_AT_LEAST_ONE);
             }
-        } else if ("OPEN_TEXT".equals(question.getQuestionType()) && (question.getCorrectAnswer() == null || question.getCorrectAnswer().isBlank())) {
+        } else if (OPEN_TEXT.equals(question.getQuestionType()) && (question.getCorrectAnswer() == null || question.getCorrectAnswer().isBlank())) {
             throw new IllegalArgumentException(OPEN_TEXT_REQUIRES_ANSWER);
         }
 
@@ -372,5 +399,16 @@ public class TestServiceImpl implements TestService {
     private String normalizeText(String text) {
         if (text == null) return null;
         return text.toLowerCase().trim();
+    }
+
+    private Integer calculateEstimatedTime(Integer questionCount) {
+        if (questionCount == null || questionCount == 0) {
+            return 0;
+        }
+        
+        int baseTime = questionCount * BASE_MINUTES_PER_QUESTION;
+        int overhead = questionCount >= 5 ? 5 : 0;
+        
+        return baseTime + overhead;
     }
 }

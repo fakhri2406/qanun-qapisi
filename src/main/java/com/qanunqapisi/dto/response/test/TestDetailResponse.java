@@ -12,6 +12,7 @@ public record TestDetailResponse(
     String status,
     Integer questionCount,
     Integer totalPossibleScore,
+    Integer estimatedMinutes,
     LocalDateTime publishedAt,
     List<QuestionResponse> questions,
     LocalDateTime createdAt,

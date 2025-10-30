@@ -1,10 +1,30 @@
 package com.qanunqapisi.controller;
 
-import com.qanunqapisi.dto.request.auth.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.qanunqapisi.dto.request.auth.ConfirmResetPasswordRequest;
+import com.qanunqapisi.dto.request.auth.LoginRequest;
+import com.qanunqapisi.dto.request.auth.PasswordStrengthRequest;
+import com.qanunqapisi.dto.request.auth.RefreshTokenRequest;
+import com.qanunqapisi.dto.request.auth.ResendVerificationRequest;
+import com.qanunqapisi.dto.request.auth.ResetPasswordRequest;
+import com.qanunqapisi.dto.request.auth.SignupRequest;
+import com.qanunqapisi.dto.request.auth.VerifyRequest;
 import com.qanunqapisi.dto.response.auth.AuthResponse;
 import com.qanunqapisi.dto.response.auth.MeResponse;
+import com.qanunqapisi.dto.response.auth.PasswordStrengthResponse;
 import com.qanunqapisi.dto.response.error.ErrorResponse;
 import com.qanunqapisi.service.AuthService;
+import com.qanunqapisi.util.PasswordStrengthEstimator;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -14,10 +34,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -26,6 +42,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Authentication", description = "Authentication and user account management endpoints")
 public class AuthController {
     private final AuthService authService;
+    private final PasswordStrengthEstimator passwordStrengthEstimator;
 
     @PostMapping("/signup")
     @Operation(
@@ -185,5 +202,32 @@ public class AuthController {
     public ResponseEntity<Void> confirmResetPassword(@Valid @RequestBody ConfirmResetPasswordRequest request) {
         authService.confirmResetPassword(request);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/check-password-strength")
+    @Operation(
+        summary = "Check password strength",
+        description = "Evaluates password strength in real-time for mobile frontend. Returns score, level, suggestions, and estimated crack time. No authentication required - designed for use during signup/password change."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Password strength evaluated successfully"),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+        )
+    })
+    public ResponseEntity<PasswordStrengthResponse> checkPasswordStrength(@Valid @RequestBody PasswordStrengthRequest request) {
+        PasswordStrengthEstimator.PasswordStrengthResult result = passwordStrengthEstimator.estimateStrength(request.password());
+        
+        PasswordStrengthResponse response = new PasswordStrengthResponse(
+            result.score(),
+            result.level(),
+            result.message(),
+            result.suggestions(),
+            result.getFormattedCrackTime()
+        );
+        
+        return ResponseEntity.ok(response);
     }
 }
