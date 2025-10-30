@@ -45,6 +45,7 @@ Public endpoints for user authentication and account management.
 | GET | `/me` | Get current user info | Yes |
 | POST | `/reset-password` | Request password reset | No |
 | POST | `/confirm-reset-password` | Confirm password reset | No |
+| POST | `/check-password-strength` | Estimate password strength while typing | No |
 
 ### 2. Profile (`/api/v1/profile`)
 User profile management endpoints.
@@ -70,6 +71,7 @@ Customer-facing test and attempt endpoints.
 | POST | `/{id}/submit` | Submit test answers | Yes |
 | GET | `/{id}/attempts` | List user's attempts | Yes |
 | GET | `/attempts/{attemptId}` | Get attempt results | Yes |
+| GET | `/{id}/statistics` | Get statistics for a specific test | Yes |
 
 ### 4. Admin: Tests (`/api/v1/admin/tests`)
 Admin endpoints for test management (requires ADMIN role).
@@ -84,6 +86,7 @@ Admin endpoints for test management (requires ADMIN role).
 | GET | `/{id}` | Get test details | Yes (Admin) |
 | POST | `/questions/{questionId}/image` | Upload question image | Yes (Admin) |
 | DELETE | `/questions/{questionId}/image` | Delete question image | Yes (Admin) |
+| GET | `/{id}/results` | List test attempts (admin view) | Yes (Admin) |
 
 ### 5. Admin: Users (`/api/v1/admin/users`)
 Admin endpoints for user management (requires ADMIN role).
@@ -164,6 +167,27 @@ Content-Type: application/json
 }
 ```
 
+#### 4. Password Strength Estimation (while typing)
+```http
+POST /api/v1/auth/check-password-strength
+Content-Type: application/json
+
+{
+  "password": "SecurePass123!"
+}
+```
+
+Response:
+```json
+{
+  "score": 78,
+  "level": "GOOD",
+  "message": "Strong enough for most uses",
+  "suggestions": ["Add more special characters"],
+  "estimatedCrackTime": "2 years"
+}
+```
+
 ### Test Flow
 
 #### 1. List Available Tests
@@ -171,6 +195,11 @@ Content-Type: application/json
 GET /api/v1/tests?page=0&size=20&sortBy=publishedAt&sortDir=DESC
 Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 ```
+
+Notes:
+- Non‑premium users automatically see only free tests.
+- Premium users see both free and premium tests.
+- Supports sorting by `publishedAt` (default), `title`, `questionCount`, `totalPossibleScore`, etc.
 
 #### 2. Start Test Attempt
 ```http
@@ -192,6 +221,21 @@ Content-Type: application/json
       "openTextAnswer": null
     }
   ]
+}
+```
+
+#### 4. Get Test Statistics (participants count)
+```http
+GET /api/v1/tests/{testId}/statistics
+Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+```
+
+Response:
+```json
+{
+  "testId": "uuid-here",
+  "testTitle": "Mülki Hüquq Əsasları",
+  "totalParticipants": 1234
 }
 ```
 
@@ -256,9 +300,55 @@ All error responses follow this structure:
 - `CLOSED_MULTIPLE`: Multiple choice question
 - `OPEN_TEXT`: Open-ended text question
 
+### Test Response Additions
+
+Both list and detail responses include additional fields used by mobile clients:
+
+```json
+{
+  "questionCount": 25,
+  "totalPossibleScore": 100,
+  "estimatedMinutes": 55,
+  "questionTypeCounts": [
+    { "questionType": "CLOSED_SINGLE",   "count": 15 },
+    { "questionType": "CLOSED_MULTIPLE", "count": 5 },
+    { "questionType": "OPEN_TEXT",       "count": 5 }
+  ]
+}
+```
+
+Mapping suggestion for UI labels (AZ):
+- `CLOSED_SINGLE` and `CLOSED_MULTIPLE` → "Çoxvariantlı"
+- `OPEN_TEXT` → "Açıq cavab"
+
 ### Attempt Status
 - `IN_PROGRESS`: Test attempt in progress
 - `COMPLETED`: Test attempt submitted
+
+## Admin Test Results
+
+Admin can view paginated results for a specific test.
+
+```http
+GET /api/v1/admin/tests/{testId}/results?page=0&size=50&sortBy=startedAt&sortDir=DESC
+Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+```
+
+Response page contains items of:
+```json
+{
+  "id": "attempt-uuid",
+  "userId": "user-uuid",
+  "userEmail": "user@example.com",
+  "userFirstName": "Aysu",
+  "userLastName": "Məmmədova",
+  "totalScore": 85,
+  "maxPossibleScore": 100,
+  "status": "COMPLETED",
+  "startedAt": "2025-10-17T10:00:00",
+  "submittedAt": "2025-10-17T10:35:00"
+}
+```
 
 ## Rate Limiting
 
@@ -271,5 +361,4 @@ The API implements rate limiting to prevent abuse:
 
 Current API Version: **1.0.0**
 
-Last Updated: October 17, 2025
-
+Last Updated: October 30, 2025
