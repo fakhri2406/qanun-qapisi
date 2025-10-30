@@ -1,27 +1,54 @@
 package com.qanunqapisi.service.impl;
 
-import com.qanunqapisi.domain.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.qanunqapisi.domain.Answer;
+import com.qanunqapisi.domain.Question;
+import com.qanunqapisi.domain.Role;
+import com.qanunqapisi.domain.Test;
+import com.qanunqapisi.domain.TestAttempt;
+import com.qanunqapisi.domain.User;
+import com.qanunqapisi.domain.UserAnswer;
 import com.qanunqapisi.dto.request.test.SubmitAnswerRequest;
 import com.qanunqapisi.dto.request.test.SubmitTestRequest;
 import com.qanunqapisi.dto.response.test.AnswerResponse;
 import com.qanunqapisi.dto.response.test.QuestionResultResponse;
 import com.qanunqapisi.dto.response.test.TestAttemptResponse;
 import com.qanunqapisi.dto.response.test.TestResultResponse;
-import com.qanunqapisi.repository.*;
+import com.qanunqapisi.repository.AnswerRepository;
+import com.qanunqapisi.repository.QuestionRepository;
+import com.qanunqapisi.repository.RoleRepository;
+import com.qanunqapisi.repository.TestAttemptRepository;
+import com.qanunqapisi.repository.TestRepository;
+import com.qanunqapisi.repository.UserAnswerRepository;
+import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.service.TestAttemptService;
+import static com.qanunqapisi.util.ErrorMessages.ATTEMPT_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.ATTEMPT_NOT_IN_PROGRESS;
+import static com.qanunqapisi.util.ErrorMessages.CANNOT_START_PREMIUM_TEST;
+import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_PUBLISHED;
+import static com.qanunqapisi.util.ErrorMessages.USER_NOT_FOUND;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.qanunqapisi.util.ErrorMessages.*;
 
 @Service
 @Transactional
@@ -283,5 +310,47 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     private String normalizeText(String text) {
         if (text == null) return "";
         return text.toLowerCase().trim();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<com.qanunqapisi.dto.response.admin.TestAttemptAdminResponse> getTestResultsForAdmin(UUID testId, Pageable pageable) {
+        testRepository.findById(testId)
+            .orElseThrow(() -> new NoSuchElementException(TEST_NOT_FOUND));
+
+        Page<TestAttempt> attempts = testAttemptRepository.findByTestIdAndStatus(testId, COMPLETED, pageable);
+
+        return attempts.map(attempt -> {
+            User user = userRepository.findById(attempt.getUserId())
+                .orElseThrow(() -> new NoSuchElementException(USER_NOT_FOUND));
+
+            return new com.qanunqapisi.dto.response.admin.TestAttemptAdminResponse(
+                attempt.getId(),
+                user.getId(),
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                attempt.getTotalScore(),
+                attempt.getMaxPossibleScore(),
+                attempt.getStatus(),
+                attempt.getStartedAt(),
+                attempt.getSubmittedAt()
+            );
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public com.qanunqapisi.dto.response.test.TestStatisticsResponse getTestStatistics(UUID testId) {
+        Test test = testRepository.findById(testId)
+            .orElseThrow(() -> new NoSuchElementException(TEST_NOT_FOUND));
+
+        long totalParticipants = testAttemptRepository.countDistinctUserIdByTestId(testId);
+
+        return new com.qanunqapisi.dto.response.test.TestStatisticsResponse(
+            test.getId(),
+            test.getTitle(),
+            totalParticipants
+        );
     }
 }

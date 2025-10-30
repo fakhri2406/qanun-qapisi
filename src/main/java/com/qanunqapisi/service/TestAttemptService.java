@@ -1,11 +1,16 @@
 package com.qanunqapisi.service;
 
-import com.qanunqapisi.dto.request.test.SubmitTestRequest;
-import com.qanunqapisi.dto.response.test.TestAttemptResponse;
-import com.qanunqapisi.dto.response.test.TestResultResponse;
-
 import java.util.List;
 import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import com.qanunqapisi.dto.request.test.SubmitTestRequest;
+import com.qanunqapisi.dto.response.admin.TestAttemptAdminResponse;
+import com.qanunqapisi.dto.response.test.TestAttemptResponse;
+import com.qanunqapisi.dto.response.test.TestResultResponse;
+import com.qanunqapisi.dto.response.test.TestStatisticsResponse;
 
 /**
  * Service interface for test attempt and submission operations.
@@ -53,4 +58,25 @@ public interface TestAttemptService {
      * @throws IllegalStateException  if attempt is not completed
      */
     TestResultResponse getAttemptResults(UUID attemptId);
+
+    /**
+     * Retrieves all completed test attempts for a specific test (Admin only).
+     * Returns paginated list with user details for admin view.
+     *
+     * @param testId   the ID of the test
+     * @param pageable pagination information
+     * @return page of test attempts with user details
+     * @throws NoSuchElementException if test not found
+     */
+    Page<TestAttemptAdminResponse> getTestResultsForAdmin(UUID testId, Pageable pageable);
+
+    /**
+     * Retrieves statistics for a specific test including participant count.
+     * Available to all authenticated users.
+     *
+     * @param testId the ID of the test
+     * @return test statistics including total participants
+     * @throws NoSuchElementException if test not found
+     */
+    TestStatisticsResponse getTestStatistics(UUID testId);
 }
