@@ -1,12 +1,11 @@
 package com.qanunqapisi.util;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
-
-import org.springframework.stereotype.Component;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
@@ -14,7 +13,7 @@ public class PasswordStrengthEstimator {
     private static final int MIN_LENGTH = 8;
     private static final int GOOD_LENGTH = 12;
     private static final int EXCELLENT_LENGTH = 16;
-    
+
     private static final String LEVEL_VERY_WEAK = "VERY_WEAK";
     private static final String LEVEL_WEAK = "WEAK";
     private static final String LEVEL_FAIR = "FAIR";
@@ -25,9 +24,9 @@ public class PasswordStrengthEstimator {
     private static final Pattern UPPERCASE = Pattern.compile("[A-Z]");
     private static final Pattern DIGIT = Pattern.compile("\\d");
     private static final Pattern SPECIAL_CHAR = Pattern.compile("[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]");
-    
+
     private static final String[] COMMON_PASSWORDS = {
-        "password", "123456", "12345678", "qwerty", "abc123", "monkey", 
+        "password", "123456", "12345678", "qwerty", "abc123", "monkey",
         "1234567", "letmein", "trustno1", "dragon", "baseball", "iloveyou",
         "master", "sunshine", "ashley", "bailey", "shadow", "123123",
         "654321", "superman", "qazwsx", "michael", "football", "welcome"
@@ -40,7 +39,7 @@ public class PasswordStrengthEstimator {
 
         int score = calculateScore(password);
         List<String> suggestions = generateSuggestions(password);
-        
+
         String level = determineLevel(score);
         String message = createMessage(level);
         double crackTimeSeconds = estimateCrackTime(password);
@@ -74,7 +73,7 @@ public class PasswordStrengthEstimator {
 
         score = applyPatternAdjustments(password, score);
 
-        return Math.min(100, Math.max(0, score));
+        return Math.clamp(score, 0, 100);
     }
 
     private int calculateLengthScore(int length) {
@@ -103,7 +102,7 @@ public class PasswordStrengthEstimator {
     private int applyPatternAdjustments(String password, int currentScore) {
         int adjustedScore = currentScore;
         String lowerPassword = password.toLowerCase();
-        
+
         if (containsCommonPassword(lowerPassword)) {
             return Math.max(0, adjustedScore - 30);
         }
@@ -216,7 +215,7 @@ public class PasswordStrengthEstimator {
             char c1 = lower.charAt(i);
             char c2 = lower.charAt(i + 1);
             char c3 = lower.charAt(i + 2);
-            
+
             if ((c2 == c1 + 1 && c3 == c2 + 1) || (c2 == c1 - 1 && c3 == c2 - 1)) {
                 return true;
             }
@@ -226,7 +225,7 @@ public class PasswordStrengthEstimator {
 
     private boolean hasRepeatedChars(String password) {
         for (int i = 0; i < password.length() - 2; i++) {
-            if (password.charAt(i) == password.charAt(i + 1) && 
+            if (password.charAt(i) == password.charAt(i + 1) &&
                 password.charAt(i) == password.charAt(i + 2)) {
                 return true;
             }
@@ -245,7 +244,7 @@ public class PasswordStrengthEstimator {
 
         double combinations = Math.pow(charsetSize, password.length());
         double attemptsPerSecond = 1_000_000_000.0;
-        
+
         return combinations / attemptsPerSecond / 2;
     }
 

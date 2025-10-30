@@ -1,15 +1,14 @@
 package com.qanunqapisi.repository;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
+import com.qanunqapisi.domain.TestAttempt;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.qanunqapisi.domain.TestAttempt;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface TestAttemptRepository extends JpaRepository<TestAttempt, UUID> {

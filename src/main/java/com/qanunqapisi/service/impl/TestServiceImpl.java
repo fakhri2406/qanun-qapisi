@@ -1,13 +1,17 @@
 package com.qanunqapisi.service.impl;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
+import com.qanunqapisi.domain.*;
+import com.qanunqapisi.dto.request.test.CreateAnswerRequest;
+import com.qanunqapisi.dto.request.test.CreateQuestionRequest;
+import com.qanunqapisi.dto.request.test.CreateTestRequest;
+import com.qanunqapisi.dto.request.test.UpdateTestRequest;
+import com.qanunqapisi.dto.response.test.*;
+import com.qanunqapisi.external.cloudinary.ImageUploadService;
+import com.qanunqapisi.repository.*;
+import com.qanunqapisi.service.TestService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -16,43 +20,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.qanunqapisi.domain.Answer;
-import com.qanunqapisi.domain.Question;
-import com.qanunqapisi.domain.Role;
-import com.qanunqapisi.domain.Test;
-import com.qanunqapisi.domain.User;
-import com.qanunqapisi.dto.request.test.CreateAnswerRequest;
-import com.qanunqapisi.dto.request.test.CreateQuestionRequest;
-import com.qanunqapisi.dto.request.test.CreateTestRequest;
-import com.qanunqapisi.dto.request.test.UpdateTestRequest;
-import com.qanunqapisi.dto.response.test.AnswerResponse;
-import com.qanunqapisi.dto.response.test.QuestionResponse;
-import com.qanunqapisi.dto.response.test.QuestionTypeCount;
-import com.qanunqapisi.dto.response.test.TestDetailResponse;
-import com.qanunqapisi.dto.response.test.TestResponse;
-import com.qanunqapisi.external.cloudinary.ImageUploadService;
-import com.qanunqapisi.repository.AnswerRepository;
-import com.qanunqapisi.repository.QuestionRepository;
-import com.qanunqapisi.repository.RoleRepository;
-import com.qanunqapisi.repository.TestRepository;
-import com.qanunqapisi.repository.UserRepository;
-import com.qanunqapisi.service.TestService;
-import static com.qanunqapisi.util.ErrorMessages.CANNOT_START_PREMIUM_TEST;
-import static com.qanunqapisi.util.ErrorMessages.CLOSED_MULTIPLE_AT_LEAST_ONE;
-import static com.qanunqapisi.util.ErrorMessages.CLOSED_MULTIPLE_MUST_HAVE_ANSWER;
-import static com.qanunqapisi.util.ErrorMessages.CLOSED_SINGLE_MUST_HAVE_ANSWER;
-import static com.qanunqapisi.util.ErrorMessages.CLOSED_SINGLE_ONE_CORRECT;
-import static com.qanunqapisi.util.ErrorMessages.OPEN_TEXT_REQUIRES_ANSWER;
-import static com.qanunqapisi.util.ErrorMessages.QUESTION_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.TEST_ALREADY_PUBLISHED;
-import static com.qanunqapisi.util.ErrorMessages.TEST_MUST_HAVE_QUESTIONS;
-import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.USER_NOT_FOUND;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import static com.qanunqapisi.util.ErrorMessages.*;
 
 @Service
 @Transactional
@@ -226,7 +198,7 @@ public class TestServiceImpl implements TestService {
         return tests.map(test -> {
             List<Question> questions = questionRepository.findByTestIdOrderByOrderIndex(test.getId());
             List<QuestionTypeCount> questionTypeCounts = calculateQuestionTypeCounts(questions);
-            
+
             return new TestResponse(
                 test.getId(),
                 test.getTitle(),
@@ -291,7 +263,7 @@ public class TestServiceImpl implements TestService {
 
     private void validateQuestionRequest(CreateQuestionRequest request) {
         String questionType = request.questionType();
-        
+
         switch (questionType) {
             case CLOSED_SINGLE -> validateClosedSingleRequest(request);
             case CLOSED_MULTIPLE -> validateClosedMultipleRequest(request);
@@ -417,10 +389,10 @@ public class TestServiceImpl implements TestService {
         if (questionCount == null || questionCount == 0) {
             return 0;
         }
-        
+
         int baseTime = questionCount * BASE_MINUTES_PER_QUESTION;
         int overhead = questionCount >= 5 ? 5 : 0;
-        
+
         return baseTime + overhead;
     }
 
