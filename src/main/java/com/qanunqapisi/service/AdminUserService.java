@@ -1,13 +1,12 @@
 package com.qanunqapisi.service;
 
-import java.util.UUID;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-
 import com.qanunqapisi.dto.request.admin.CreateUserRequest;
 import com.qanunqapisi.dto.request.admin.UpdateUserRequest;
 import com.qanunqapisi.dto.response.admin.AdminUserResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.UUID;
 
 /**
  * Service interface for administrative user management operations.
@@ -44,10 +43,10 @@ public interface AdminUserService {
     /**
      * Updates an existing user's information, role, and status.
      *
-     * @param userId the ID of the user to update
+     * @param userId  the ID of the user to update
      * @param request the user update request
      * @return the updated user's details
-     * @throws NoSuchElementException if user not found
+     * @throws NoSuchElementException   if user not found
      * @throws IllegalArgumentException if new email already exists
      */
     AdminUserResponse updateUser(UUID userId, UpdateUserRequest request);

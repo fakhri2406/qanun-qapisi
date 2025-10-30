@@ -1,24 +1,6 @@
 package com.qanunqapisi.service.impl;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.UUID;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
-import com.qanunqapisi.domain.Answer;
-import com.qanunqapisi.domain.Question;
-import com.qanunqapisi.domain.Role;
-import com.qanunqapisi.domain.Test;
-import com.qanunqapisi.domain.User;
+import com.qanunqapisi.domain.*;
 import com.qanunqapisi.dto.request.test.CreateAnswerRequest;
 import com.qanunqapisi.dto.request.test.CreateQuestionRequest;
 import com.qanunqapisi.dto.request.test.CreateTestRequest;
@@ -28,26 +10,26 @@ import com.qanunqapisi.dto.response.test.QuestionResponse;
 import com.qanunqapisi.dto.response.test.TestDetailResponse;
 import com.qanunqapisi.dto.response.test.TestResponse;
 import com.qanunqapisi.external.cloudinary.ImageUploadService;
-import com.qanunqapisi.repository.AnswerRepository;
-import com.qanunqapisi.repository.QuestionRepository;
-import com.qanunqapisi.repository.RoleRepository;
-import com.qanunqapisi.repository.TestRepository;
-import com.qanunqapisi.repository.UserRepository;
+import com.qanunqapisi.repository.*;
 import com.qanunqapisi.service.TestService;
-import static com.qanunqapisi.util.ErrorMessages.CANNOT_START_PREMIUM_TEST;
-import static com.qanunqapisi.util.ErrorMessages.CLOSED_MULTIPLE_AT_LEAST_ONE;
-import static com.qanunqapisi.util.ErrorMessages.CLOSED_SINGLE_ONE_CORRECT;
-import static com.qanunqapisi.util.ErrorMessages.OPEN_TEXT_REQUIRES_ANSWER;
-import static com.qanunqapisi.util.ErrorMessages.QUESTION_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.TEST_ALREADY_PUBLISHED;
-import static com.qanunqapisi.util.ErrorMessages.TEST_MUST_HAVE_QUESTIONS;
-import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.USER_NOT_FOUND;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.UUID;
+
+import static com.qanunqapisi.util.ErrorMessages.*;
 
 @Service
 @Transactional
@@ -283,7 +265,7 @@ public class TestServiceImpl implements TestService {
 
     private void validateClosedSingleRequest(CreateQuestionRequest request) {
         if (request.answers() == null || request.answers().isEmpty()) {
-            throw new IllegalArgumentException("Closed-single question must have answers");
+            throw new IllegalArgumentException(CLOSED_SINGLE_MUST_HAVE_ANSWER);
         }
         long correctCount = request.answers().stream().filter(CreateAnswerRequest::isCorrect).count();
         if (correctCount != 1) {
@@ -293,7 +275,7 @@ public class TestServiceImpl implements TestService {
 
     private void validateClosedMultipleRequest(CreateQuestionRequest request) {
         if (request.answers() == null || request.answers().isEmpty()) {
-            throw new IllegalArgumentException("Closed-multiple question must have answers");
+            throw new IllegalArgumentException(CLOSED_MULTIPLE_MUST_HAVE_ANSWER);
         }
         long correctCount = request.answers().stream().filter(CreateAnswerRequest::isCorrect).count();
         if (correctCount < 1) {

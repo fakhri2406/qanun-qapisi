@@ -46,12 +46,15 @@ public final class ErrorMessages {
     public static final String EMAIL_CHANGE_MISMATCH = "Pending email mismatch";
     public static final String EMAIL_CHANGE_EXPIRED = "Email change code expired";
     public static final String EMAIL_CHANGE_INVALID = "Invalid email change code";
+    public static final String PASSWORD_RESET_LOCKED = "Password reset locked. Try later";
     public static final String PASSWORD_RESET_EXPIRED = "Password reset token expired";
     public static final String PASSWORD_RESET_INVALID = "Invalid password reset token";
 
     // Test Management
     public static final String TEST_MUST_HAVE_QUESTIONS = "Test must have at least one question";
+    public static final String CLOSED_SINGLE_MUST_HAVE_ANSWER = "Closed-single question must have an answer";
     public static final String CLOSED_SINGLE_ONE_CORRECT = "Closed-single question must have exactly one correct answer";
+    public static final String CLOSED_MULTIPLE_MUST_HAVE_ANSWER = "Closed-multiple question must have answers";
     public static final String CLOSED_MULTIPLE_AT_LEAST_ONE = "Closed-multiple question must have at least one correct answer";
     public static final String OPEN_TEXT_REQUIRES_ANSWER = "Open-text question must have a correct answer";
     public static final String CANNOT_DELETE_QUESTION_WITH_ANSWERS = "Cannot delete question that has been answered";

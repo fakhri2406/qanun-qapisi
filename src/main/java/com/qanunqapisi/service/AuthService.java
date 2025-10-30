@@ -1,12 +1,6 @@
 package com.qanunqapisi.service;
 
-import com.qanunqapisi.dto.request.auth.ConfirmResetPasswordRequest;
-import com.qanunqapisi.dto.request.auth.LoginRequest;
-import com.qanunqapisi.dto.request.auth.RefreshTokenRequest;
-import com.qanunqapisi.dto.request.auth.ResendVerificationRequest;
-import com.qanunqapisi.dto.request.auth.ResetPasswordRequest;
-import com.qanunqapisi.dto.request.auth.SignupRequest;
-import com.qanunqapisi.dto.request.auth.VerifyRequest;
+import com.qanunqapisi.dto.request.auth.*;
 import com.qanunqapisi.dto.response.auth.AuthResponse;
 import com.qanunqapisi.dto.response.auth.MeResponse;
 
@@ -37,7 +31,7 @@ public interface AuthService {
      *
      * @param request the resend request containing user email
      * @throws NoSuchElementException if user not found
-     * @throws IllegalStateException if user is already verified
+     * @throws IllegalStateException  if user is already verified
      */
     void resend(ResendVerificationRequest request);
 
@@ -46,7 +40,7 @@ public interface AuthService {
      *
      * @param request the login request containing email and password
      * @return authentication response with access and refresh tokens
-     * @throws NoSuchElementException if user not found
+     * @throws NoSuchElementException   if user not found
      * @throws IllegalArgumentException if password is incorrect or user not verified
      */
     AuthResponse login(LoginRequest request);
@@ -56,7 +50,7 @@ public interface AuthService {
      *
      * @param request the refresh token request
      * @return authentication response with new access and refresh tokens
-     * @throws NoSuchElementException if refresh token not found
+     * @throws NoSuchElementException   if refresh token not found
      * @throws IllegalArgumentException if refresh token is expired or revoked
      */
     AuthResponse refresh(RefreshTokenRequest request);

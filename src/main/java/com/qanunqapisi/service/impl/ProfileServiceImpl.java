@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import static com.qanunqapisi.util.ErrorMessages.*;
@@ -110,7 +111,7 @@ public class ProfileServiceImpl implements ProfileService {
 
         try {
             String subject = "Qanun Qapısı - Email Dəyişikliyi";
-            String body = emailTemplateService.render("verification", java.util.Map.of(
+            String body = emailTemplateService.render("verification", Map.of(
                 "code", String.valueOf(code),
                 "year", String.valueOf(LocalDateTime.now().getYear()),
                 "expiry", String.valueOf(EMAIL_CHANGE_CODE_TTL_MINUTES)
@@ -211,4 +212,3 @@ public class ProfileServiceImpl implements ProfileService {
         );
     }
 }
-

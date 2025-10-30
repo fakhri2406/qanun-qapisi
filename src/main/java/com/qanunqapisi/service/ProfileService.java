@@ -1,12 +1,11 @@
 package com.qanunqapisi.service;
 
-import org.springframework.web.multipart.MultipartFile;
-
 import com.qanunqapisi.dto.request.profile.ChangeEmailRequest;
 import com.qanunqapisi.dto.request.profile.ChangePasswordRequest;
 import com.qanunqapisi.dto.request.profile.UpdateProfileRequest;
 import com.qanunqapisi.dto.request.profile.VerifyEmailChangeRequest;
 import com.qanunqapisi.dto.response.profile.ProfileResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Service interface for user profile management operations.
@@ -34,7 +33,7 @@ public interface ProfileService {
      * Changes the authenticated user's password.
      *
      * @param request the password change request containing old and new passwords
-     * @throws NoSuchElementException if authenticated user not found
+     * @throws NoSuchElementException   if authenticated user not found
      * @throws IllegalArgumentException if old password is incorrect
      */
     void changePassword(ChangePasswordRequest request);
@@ -43,7 +42,7 @@ public interface ProfileService {
      * Initiates email change process by sending verification code to new email.
      *
      * @param request the email change request containing new email address
-     * @throws NoSuchElementException if authenticated user not found
+     * @throws NoSuchElementException   if authenticated user not found
      * @throws IllegalArgumentException if new email already exists
      */
     void requestEmailChange(ChangeEmailRequest request);
@@ -52,7 +51,7 @@ public interface ProfileService {
      * Confirms email change using verification code sent to new email address.
      *
      * @param request the verification request containing code
-     * @throws NoSuchElementException if authenticated user not found
+     * @throws NoSuchElementException   if authenticated user not found
      * @throws IllegalArgumentException if verification code is invalid or expired
      */
     void verifyEmailChange(VerifyEmailChangeRequest request);
@@ -63,7 +62,7 @@ public interface ProfileService {
      * @param file the image file to upload
      * @return the URL of the uploaded profile picture
      * @throws NoSuchElementException if authenticated user not found
-     * @throws ImageUploadException if image upload fails
+     * @throws ImageUploadException   if image upload fails
      */
     String uploadProfilePicture(MultipartFile file);
 
@@ -71,7 +70,7 @@ public interface ProfileService {
      * Deletes the authenticated user's profile picture.
      *
      * @throws NoSuchElementException if authenticated user not found
-     * @throws ImageUploadException if image deletion fails
+     * @throws ImageUploadException   if image deletion fails
      */
     void deleteProfilePicture();
 }

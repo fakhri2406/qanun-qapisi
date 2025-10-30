@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Date;
 import java.util.UUID;
 
 @Component
@@ -17,21 +18,13 @@ public class TokenGenerator {
     private static final SecureRandom RANDOM = new SecureRandom();
     private final JwtProperties jwtProperties;
 
-    public String generateToken() {
-        return UUID.randomUUID().toString();
-    }
-
-    public int generateCode() {
-        return 100000 + RANDOM.nextInt(900000);
-    }
-
     public String generateAccessToken(User user) {
         return Jwts.builder()
             .setSubject(user.getEmail())
             .setIssuer(jwtProperties.getIssuer())
             .setAudience(jwtProperties.getAudience())
-            .setIssuedAt(java.util.Date.from(Instant.now()))
-            .setExpiration(java.util.Date.from(Instant.now().plusSeconds(jwtProperties.getAccessTokenValiditySeconds())))
+            .setIssuedAt(Date.from(Instant.now()))
+            .setExpiration(Date.from(Instant.now().plusSeconds(jwtProperties.getAccessTokenValiditySeconds())))
             .claim("userId", user.getId().toString())
             .claim("email", user.getEmail())
             .claim("firstName", user.getFirstName())
@@ -44,16 +37,11 @@ public class TokenGenerator {
             .compact();
     }
 
-    public String generateRefreshToken(User user) {
-        return Jwts.builder()
-            .setSubject(user.getEmail())
-            .setIssuer(jwtProperties.getIssuer())
-            .setAudience(jwtProperties.getAudience())
-            .setIssuedAt(java.util.Date.from(Instant.now()))
-            .setExpiration(java.util.Date.from(Instant.now().plusSeconds(jwtProperties.getRefreshTokenValiditySeconds())))
-            .claim("userId", user.getId().toString())
-            .claim("type", "refresh")
-            .signWith(Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes()))
-            .compact();
+    public String generateUUID() {
+        return UUID.randomUUID().toString();
+    }
+
+    public int generateCode() {
+        return 100000 + RANDOM.nextInt(900000);
     }
 }

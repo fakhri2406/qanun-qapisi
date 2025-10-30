@@ -1,15 +1,14 @@
 package com.qanunqapisi.service;
 
-import java.util.UUID;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.web.multipart.MultipartFile;
-
 import com.qanunqapisi.dto.request.test.CreateTestRequest;
 import com.qanunqapisi.dto.request.test.UpdateTestRequest;
 import com.qanunqapisi.dto.response.test.TestDetailResponse;
 import com.qanunqapisi.dto.response.test.TestResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.UUID;
 
 /**
  * Service interface for test management operations.
@@ -28,7 +27,7 @@ public interface TestService {
     /**
      * Updates an existing test and its questions.
      *
-     * @param testId the ID of the test to update
+     * @param testId  the ID of the test to update
      * @param request the test update request containing new details
      * @return the updated test details
      * @throws NoSuchElementException if test not found
@@ -49,7 +48,7 @@ public interface TestService {
      * @param testId the ID of the test to publish
      * @return the published test details
      * @throws NoSuchElementException if test not found
-     * @throws IllegalStateException if test is already published or has no questions
+     * @throws IllegalStateException  if test is already published or has no questions
      */
     TestDetailResponse publishTest(UUID testId);
 
@@ -65,9 +64,9 @@ public interface TestService {
     /**
      * Lists tests with optional filtering by status and premium flag (admin view).
      *
-     * @param status optional filter by test status (DRAFT, PUBLISHED)
+     * @param status    optional filter by test status (DRAFT, PUBLISHED)
      * @param isPremium optional filter by premium flag
-     * @param pageable pagination information
+     * @param pageable  pagination information
      * @return page of tests matching the filters
      */
     Page<TestResponse> listTests(String status, Boolean isPremium, Pageable pageable);
@@ -89,7 +88,7 @@ public interface TestService {
      * @param testId the ID of the test to retrieve
      * @return the test details
      * @throws NoSuchElementException if test or user not found
-     * @throws IllegalStateException if user doesn't have access to premium test
+     * @throws IllegalStateException  if user doesn't have access to premium test
      */
     TestDetailResponse getTestForUser(UUID testId);
 
@@ -105,10 +104,10 @@ public interface TestService {
      * Uploads an image for a specific question.
      *
      * @param questionId the ID of the question
-     * @param file the image file to upload
+     * @param file       the image file to upload
      * @return the URL of the uploaded image
      * @throws NoSuchElementException if question not found
-     * @throws ImageUploadException if image upload fails
+     * @throws ImageUploadException   if image upload fails
      */
     String uploadQuestionImage(UUID questionId, MultipartFile file);
 
@@ -117,7 +116,7 @@ public interface TestService {
      *
      * @param questionId the ID of the question
      * @throws NoSuchElementException if question not found
-     * @throws ImageUploadException if image deletion fails
+     * @throws ImageUploadException   if image deletion fails
      */
     void deleteQuestionImage(UUID questionId);
 }

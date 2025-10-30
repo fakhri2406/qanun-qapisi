@@ -1,11 +1,11 @@
 package com.qanunqapisi.service;
 
-import java.util.List;
-import java.util.UUID;
-
 import com.qanunqapisi.dto.request.test.SubmitTestRequest;
 import com.qanunqapisi.dto.response.test.TestAttemptResponse;
 import com.qanunqapisi.dto.response.test.TestResultResponse;
+
+import java.util.List;
+import java.util.UUID;
 
 /**
  * Service interface for test attempt and submission operations.
@@ -19,7 +19,7 @@ public interface TestAttemptService {
      * @param testId the ID of the test to start
      * @return the created test attempt details
      * @throws NoSuchElementException if test or user not found
-     * @throws IllegalStateException if test is not published or user lacks access
+     * @throws IllegalStateException  if test is not published or user lacks access
      */
     TestAttemptResponse startTest(UUID testId);
 
@@ -27,7 +27,7 @@ public interface TestAttemptService {
      * Submits answers for a test attempt and calculates the score.
      * Marks the attempt as COMPLETED and scores all answers.
      *
-     * @param testId the ID of the test being submitted
+     * @param testId  the ID of the test being submitted
      * @param request the submission request containing all answers
      * @return the test results with scores and correct answers
      * @throws NoSuchElementException if test, user, or attempt not found
@@ -50,7 +50,7 @@ public interface TestAttemptService {
      * @param attemptId the ID of the test attempt
      * @return the detailed test results
      * @throws NoSuchElementException if attempt not found
-     * @throws IllegalStateException if attempt is not completed
+     * @throws IllegalStateException  if attempt is not completed
      */
     TestResultResponse getAttemptResults(UUID attemptId);
 }

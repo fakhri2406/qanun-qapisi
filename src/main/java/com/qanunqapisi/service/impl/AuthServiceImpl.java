@@ -30,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import static com.qanunqapisi.util.ErrorMessages.*;
@@ -95,7 +96,7 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             String subject = "Qanun Qapısı - Email Təsdiqlənməsi";
-            String body = emailTemplateService.render("verification", java.util.Map.of(
+            String body = emailTemplateService.render("verification", Map.of(
                 "code", String.valueOf(code),
                 "year", String.valueOf(LocalDateTime.now().getYear()),
                 "expiry", String.valueOf(VERIFY_CODE_TTL_MINUTES)
@@ -168,7 +169,7 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             String subject = "Qanun Qapısı - Email Təsdiqlənməsi";
-            String body = emailTemplateService.render("verification", java.util.Map.of(
+            String body = emailTemplateService.render("verification", Map.of(
                 "code", String.valueOf(code),
                 "year", String.valueOf(LocalDateTime.now().getYear()),
                 "expiry", String.valueOf(VERIFY_CODE_TTL_MINUTES)
@@ -291,10 +292,10 @@ public class AuthServiceImpl implements AuthService {
 
         if (user.getPasswordResetLockedUntil() != null &&
             user.getPasswordResetLockedUntil().isAfter(LocalDateTime.now())) {
-            throw new IllegalStateException("Password reset locked. Try later");
+            throw new IllegalStateException(PASSWORD_RESET_LOCKED);
         }
 
-        String token = tokenGenerator.generateToken();
+        String token = tokenGenerator.generateUUID();
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(RESET_TOKEN_TTL_MINUTES);
 
         user.setPasswordResetToken(token);
@@ -304,7 +305,7 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             String subject = "Qanun Qapısı - Şifrə Sıfırlama";
-            String body = emailTemplateService.render("password-reset", java.util.Map.of(
+            String body = emailTemplateService.render("password-reset", Map.of(
                 "token", token,
                 "year", String.valueOf(LocalDateTime.now().getYear()),
                 "expiry", String.valueOf(RESET_TOKEN_TTL_MINUTES)
@@ -352,7 +353,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private String generateRefreshToken(User user) {
-        String token = tokenGenerator.generateToken();
+        String token = tokenGenerator.generateUUID();
         LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(jwtProperties.getRefreshTokenValiditySeconds());
 
         RefreshToken refreshToken = RefreshToken.builder()

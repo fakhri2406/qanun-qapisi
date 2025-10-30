@@ -1,27 +1,10 @@
 package com.qanunqapisi.controller;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.qanunqapisi.dto.request.auth.ConfirmResetPasswordRequest;
-import com.qanunqapisi.dto.request.auth.LoginRequest;
-import com.qanunqapisi.dto.request.auth.RefreshTokenRequest;
-import com.qanunqapisi.dto.request.auth.ResendVerificationRequest;
-import com.qanunqapisi.dto.request.auth.ResetPasswordRequest;
-import com.qanunqapisi.dto.request.auth.SignupRequest;
-import com.qanunqapisi.dto.request.auth.VerifyRequest;
+import com.qanunqapisi.dto.request.auth.*;
 import com.qanunqapisi.dto.response.auth.AuthResponse;
 import com.qanunqapisi.dto.response.auth.MeResponse;
 import com.qanunqapisi.dto.response.error.ErrorResponse;
 import com.qanunqapisi.service.AuthService;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -31,6 +14,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")
