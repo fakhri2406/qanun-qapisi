@@ -3,6 +3,22 @@ name: Build & Deploy
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**/README.md'
+      - 'README.md'
+      - 'API_DOCUMENTATION.md'
+      - 'docs/**'
+      - '**/*.md'
+      - '**/*.mdx'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**/README.md'
+      - 'README.md'
+      - 'API_DOCUMENTATION.md'
+      - 'docs/**'
+      - '**/*.md'
+      - '**/*.mdx'
 
 jobs:
   build-and-deploy:
