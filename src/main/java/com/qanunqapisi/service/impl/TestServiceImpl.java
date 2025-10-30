@@ -3,8 +3,10 @@ package com.qanunqapisi.service.impl;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +27,7 @@ import com.qanunqapisi.dto.request.test.CreateTestRequest;
 import com.qanunqapisi.dto.request.test.UpdateTestRequest;
 import com.qanunqapisi.dto.response.test.AnswerResponse;
 import com.qanunqapisi.dto.response.test.QuestionResponse;
+import com.qanunqapisi.dto.response.test.QuestionTypeCount;
 import com.qanunqapisi.dto.response.test.TestDetailResponse;
 import com.qanunqapisi.dto.response.test.TestResponse;
 import com.qanunqapisi.external.cloudinary.ImageUploadService;
@@ -188,6 +191,8 @@ public class TestServiceImpl implements TestService {
             ));
         }
 
+        List<QuestionTypeCount> questionTypeCounts = calculateQuestionTypeCounts(questions);
+
         return new TestDetailResponse(
             test.getId(),
             test.getTitle(),
@@ -199,6 +204,7 @@ public class TestServiceImpl implements TestService {
             calculateEstimatedTime(test.getQuestionCount()),
             test.getPublishedAt(),
             questionResponses,
+            questionTypeCounts,
             test.getCreatedAt(),
             test.getUpdatedAt()
         );
@@ -217,19 +223,25 @@ public class TestServiceImpl implements TestService {
             tests = testRepository.findAll(pageable);
         }
 
-        return tests.map(test -> new TestResponse(
-            test.getId(),
-            test.getTitle(),
-            test.getDescription(),
-            test.getIsPremium(),
-            test.getStatus(),
-            test.getQuestionCount(),
-            test.getTotalPossibleScore(),
-            calculateEstimatedTime(test.getQuestionCount()),
-            test.getPublishedAt(),
-            test.getCreatedAt(),
-            test.getUpdatedAt()
-        ));
+        return tests.map(test -> {
+            List<Question> questions = questionRepository.findByTestIdOrderByOrderIndex(test.getId());
+            List<QuestionTypeCount> questionTypeCounts = calculateQuestionTypeCounts(questions);
+            
+            return new TestResponse(
+                test.getId(),
+                test.getTitle(),
+                test.getDescription(),
+                test.getIsPremium(),
+                test.getStatus(),
+                test.getQuestionCount(),
+                test.getTotalPossibleScore(),
+                calculateEstimatedTime(test.getQuestionCount()),
+                questionTypeCounts,
+                test.getPublishedAt(),
+                test.getCreatedAt(),
+                test.getUpdatedAt()
+            );
+        });
     }
 
     @Override
@@ -410,5 +422,18 @@ public class TestServiceImpl implements TestService {
         int overhead = questionCount >= 5 ? 5 : 0;
         
         return baseTime + overhead;
+    }
+
+    private List<QuestionTypeCount> calculateQuestionTypeCounts(List<Question> questions) {
+        if (questions == null || questions.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, Long> typeCounts = questions.stream()
+            .collect(Collectors.groupingBy(Question::getQuestionType, Collectors.counting()));
+
+        return typeCounts.entrySet().stream()
+            .map(entry -> new QuestionTypeCount(entry.getKey(), entry.getValue().intValue()))
+            .toList();
     }
 }

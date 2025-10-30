@@ -15,6 +15,7 @@ public record TestDetailResponse(
     Integer estimatedMinutes,
     LocalDateTime publishedAt,
     List<QuestionResponse> questions,
+    List<QuestionTypeCount> questionTypeCounts,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {
