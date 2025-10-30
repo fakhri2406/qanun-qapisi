@@ -9,6 +9,7 @@ public record QuestionResultResponse(
     String questionText,
     String imageUrl,
     Integer score,
+    Integer orderIndex,
     Boolean isCorrect,
     Integer scoreEarned,
     List<UUID> selectedAnswerIds,

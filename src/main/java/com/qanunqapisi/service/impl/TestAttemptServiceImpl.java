@@ -1,17 +1,15 @@
 package com.qanunqapisi.service.impl;
 
-import com.qanunqapisi.domain.*;
-import com.qanunqapisi.dto.request.test.SubmitAnswerRequest;
-import com.qanunqapisi.dto.request.test.SubmitTestRequest;
-import com.qanunqapisi.dto.response.test.AnswerResponse;
-import com.qanunqapisi.dto.response.test.QuestionResultResponse;
-import com.qanunqapisi.dto.response.test.TestAttemptResponse;
-import com.qanunqapisi.dto.response.test.TestResultResponse;
-import com.qanunqapisi.repository.*;
-import com.qanunqapisi.service.TestAttemptService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -19,11 +17,38 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.qanunqapisi.domain.Answer;
+import com.qanunqapisi.domain.Question;
+import com.qanunqapisi.domain.Role;
+import com.qanunqapisi.domain.Test;
+import com.qanunqapisi.domain.TestAttempt;
+import com.qanunqapisi.domain.User;
+import com.qanunqapisi.domain.UserAnswer;
+import com.qanunqapisi.dto.request.test.SubmitAnswerRequest;
+import com.qanunqapisi.dto.request.test.SubmitTestRequest;
+import com.qanunqapisi.dto.response.test.AnswerResponse;
+import com.qanunqapisi.dto.response.test.QuestionResultResponse;
+import com.qanunqapisi.dto.response.test.TestAttemptResponse;
+import com.qanunqapisi.dto.response.test.TestResultResponse;
+import com.qanunqapisi.repository.AnswerRepository;
+import com.qanunqapisi.repository.QuestionRepository;
+import com.qanunqapisi.repository.RoleRepository;
+import com.qanunqapisi.repository.TestAttemptRepository;
+import com.qanunqapisi.repository.TestRepository;
+import com.qanunqapisi.repository.UserAnswerRepository;
+import com.qanunqapisi.repository.UserRepository;
+import com.qanunqapisi.service.TestAttemptService;
+import static com.qanunqapisi.util.ErrorMessages.ATTEMPT_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.ATTEMPT_NOT_IN_PROGRESS;
+import static com.qanunqapisi.util.ErrorMessages.CANNOT_START_PREMIUM_TEST;
+import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_PUBLISHED;
+import static com.qanunqapisi.util.ErrorMessages.USER_NOT_FOUND;
 
-import static com.qanunqapisi.util.ErrorMessages.*;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Transactional
@@ -172,12 +197,20 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             .collect(Collectors.toMap(UserAnswer::getQuestionId, a -> a));
 
         List<Question> questions = questionRepository.findByTestIdOrderByOrderIndex(test.getId());
-        List<QuestionResultResponse> questionResults = new ArrayList<>();
 
-        for (Question question : questions) {
-            UserAnswer userAnswer = answerMap.get(question.getId());
-            questionResults.add(buildQuestionResult(question, userAnswer));
-        }
+        List<UUID> questionIds = questions.stream().map(Question::getId).toList();
+        List<Answer> allAnswers = questionIds.isEmpty() ? 
+            List.of() : 
+            answerRepository.findByQuestionIdInOrderByQuestionIdAndOrderIndex(questionIds);
+        Map<UUID, List<Answer>> answersByQuestionId = allAnswers.stream()
+            .collect(Collectors.groupingBy(Answer::getQuestionId));
+
+        List<QuestionResultResponse> questionResults = questions.stream()
+            .map(question -> {
+                UserAnswer userAnswer = answerMap.get(question.getId());
+                return buildQuestionResultOptimized(question, userAnswer, answersByQuestionId);
+            })
+            .toList();
 
         return new TestResultResponse(
             attempt.getId(),
@@ -272,6 +305,45 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             question.getQuestionText(),
             question.getImageUrl(),
             question.getScore(),
+            question.getOrderIndex(),
+            userAnswer != null && Boolean.TRUE.equals(userAnswer.getIsCorrect()),
+            userAnswer != null ? userAnswer.getScoreEarned() : 0,
+            selectedAnswerIds,
+            userAnswer != null ? userAnswer.getOpenTextAnswer() : null,
+            correctAnswerIds,
+            question.getCorrectAnswer(),
+            answerResponses
+        );
+    }
+
+    private QuestionResultResponse buildQuestionResultOptimized(
+            Question question, 
+            UserAnswer userAnswer, 
+            Map<UUID, List<Answer>> answersByQuestionId) {
+        
+        List<Answer> allAnswers = answersByQuestionId.getOrDefault(question.getId(), List.of());
+        List<AnswerResponse> answerResponses = allAnswers.stream()
+            .map(a -> new AnswerResponse(a.getId(), a.getAnswerText(), a.getIsCorrect(), a.getOrderIndex()))
+            .toList();
+
+        List<UUID> correctAnswerIds = null;
+        if ("CLOSED_SINGLE".equals(question.getQuestionType()) ||
+            "CLOSED_MULTIPLE".equals(question.getQuestionType())) {
+            correctAnswerIds = allAnswers.stream()
+                .filter(Answer::getIsCorrect)
+                .map(Answer::getId)
+                .toList();
+        }
+
+        List<UUID> selectedAnswerIds = userAnswer != null ? userAnswer.getSelectedAnswerIds() : null;
+
+        return new QuestionResultResponse(
+            question.getId(),
+            question.getQuestionType(),
+            question.getQuestionText(),
+            question.getImageUrl(),
+            question.getScore(),
+            question.getOrderIndex(),
             userAnswer != null && Boolean.TRUE.equals(userAnswer.getIsCorrect()),
             userAnswer != null ? userAnswer.getScoreEarned() : 0,
             selectedAnswerIds,

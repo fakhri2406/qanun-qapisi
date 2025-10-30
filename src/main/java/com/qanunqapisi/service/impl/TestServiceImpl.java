@@ -1,17 +1,15 @@
 package com.qanunqapisi.service.impl;
 
-import com.qanunqapisi.domain.*;
-import com.qanunqapisi.dto.request.test.CreateAnswerRequest;
-import com.qanunqapisi.dto.request.test.CreateQuestionRequest;
-import com.qanunqapisi.dto.request.test.CreateTestRequest;
-import com.qanunqapisi.dto.request.test.UpdateTestRequest;
-import com.qanunqapisi.dto.response.test.*;
-import com.qanunqapisi.external.cloudinary.ImageUploadService;
-import com.qanunqapisi.repository.*;
-import com.qanunqapisi.service.TestService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -20,11 +18,43 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.qanunqapisi.domain.Answer;
+import com.qanunqapisi.domain.Question;
+import com.qanunqapisi.domain.Role;
+import com.qanunqapisi.domain.Test;
+import com.qanunqapisi.domain.User;
+import com.qanunqapisi.dto.request.test.CreateAnswerRequest;
+import com.qanunqapisi.dto.request.test.CreateQuestionRequest;
+import com.qanunqapisi.dto.request.test.CreateTestRequest;
+import com.qanunqapisi.dto.request.test.UpdateTestRequest;
+import com.qanunqapisi.dto.response.test.AnswerResponse;
+import com.qanunqapisi.dto.response.test.QuestionResponse;
+import com.qanunqapisi.dto.response.test.QuestionTypeCount;
+import com.qanunqapisi.dto.response.test.TestDetailResponse;
+import com.qanunqapisi.dto.response.test.TestResponse;
+import com.qanunqapisi.external.cloudinary.ImageUploadService;
+import com.qanunqapisi.repository.AnswerRepository;
+import com.qanunqapisi.repository.QuestionRepository;
+import com.qanunqapisi.repository.RoleRepository;
+import com.qanunqapisi.repository.TestRepository;
+import com.qanunqapisi.repository.UserRepository;
+import com.qanunqapisi.service.TestService;
+import static com.qanunqapisi.util.ErrorMessages.CANNOT_START_PREMIUM_TEST;
+import static com.qanunqapisi.util.ErrorMessages.CLOSED_MULTIPLE_AT_LEAST_ONE;
+import static com.qanunqapisi.util.ErrorMessages.CLOSED_MULTIPLE_MUST_HAVE_ANSWER;
+import static com.qanunqapisi.util.ErrorMessages.CLOSED_SINGLE_MUST_HAVE_ANSWER;
+import static com.qanunqapisi.util.ErrorMessages.CLOSED_SINGLE_ONE_CORRECT;
+import static com.qanunqapisi.util.ErrorMessages.OPEN_TEXT_REQUIRES_ANSWER;
+import static com.qanunqapisi.util.ErrorMessages.QUESTION_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.TEST_ALREADY_PUBLISHED;
+import static com.qanunqapisi.util.ErrorMessages.TEST_MUST_HAVE_QUESTIONS;
+import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.USER_NOT_FOUND;
 
-import static com.qanunqapisi.util.ErrorMessages.*;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Transactional
@@ -49,6 +79,10 @@ public class TestServiceImpl implements TestService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = userRepository.findByEmail(auth.getName())
             .orElseThrow(() -> new NoSuchElementException(USER_NOT_FOUND));
+
+        if (request.questions() != null && !request.questions().isEmpty()) {
+            validateQuestionOrderIndices(request.questions());
+        }
 
         Test test = Test.builder()
             .createdBy(user.getId())
@@ -89,6 +123,8 @@ public class TestServiceImpl implements TestService {
         }
 
         if (request.questions() != null) {
+            validateQuestionOrderIndices(request.questions());
+            
             questionRepository.deleteByTestId(testId);
 
             for (int i = 0; i < request.questions().size(); i++) {
@@ -125,15 +161,96 @@ public class TestServiceImpl implements TestService {
             throw new IllegalStateException(TEST_MUST_HAVE_QUESTIONS);
         }
 
-        for (Question question : questions) {
-            validateQuestion(question);
-        }
+        validateTestIntegrity(test, questions);
 
         test.setStatus(PUBLISHED);
         test.setPublishedAt(LocalDateTime.now());
         testRepository.save(test);
 
         return getTest(testId);
+    }
+
+    private void validateTestIntegrity(Test test, List<Question> questions) {
+        for (Question question : questions) {
+            validateQuestion(question);
+        }
+
+        validateOrderIndexContinuity(questions);
+
+        List<UUID> questionIds = questions.stream().map(Question::getId).toList();
+        List<Answer> allAnswers = answerRepository.findByQuestionIdInOrderByQuestionIdAndOrderIndex(questionIds);
+        Map<UUID, List<Answer>> answersByQuestion = allAnswers.stream()
+            .collect(Collectors.groupingBy(Answer::getQuestionId));
+
+        for (Question question : questions) {
+            List<Answer> answers = answersByQuestion.getOrDefault(question.getId(), List.of());
+            if ((CLOSED_SINGLE.equals(question.getQuestionType()) || 
+                 CLOSED_MULTIPLE.equals(question.getQuestionType())) && answers.isEmpty()) {
+                throw new IllegalStateException(
+                    "Question at position " + question.getOrderIndex() + 
+                    " requires answers but has none. Cannot publish test."
+                );
+            }
+
+            if (!answers.isEmpty()) {
+                validateAnswerOrderIndexContinuity(answers, question.getOrderIndex());
+            }
+        }
+
+        if (test.getQuestionCount() != questions.size()) {
+            log.warn("Test {} has incorrect question count. Expected {}, found {}. Recalculating...",
+                test.getId(), questions.size(), test.getQuestionCount());
+            recalculateTestScores(test.getId());
+        }
+
+        if (test.getTitle() == null || test.getTitle().isBlank()) {
+            throw new IllegalStateException("Test must have a valid title");
+        }
+        if (test.getDescription() == null || test.getDescription().isBlank()) {
+            throw new IllegalStateException("Test must have a valid description");
+        }
+    }
+
+    private void validateOrderIndexContinuity(List<Question> questions) {
+        if (questions.isEmpty()) return;
+
+        List<Integer> indices = questions.stream()
+            .map(Question::getOrderIndex)
+            .sorted()
+            .toList();
+
+        Set<Integer> uniqueIndices = new HashSet<>(indices);
+        if (uniqueIndices.size() != indices.size()) {
+            throw new IllegalStateException(
+                "Questions have duplicate orderIndex values. Cannot publish. " +
+                "Please edit the test to fix ordering."
+            );
+        }
+
+        int expectedMax = questions.size() - 1;
+        int actualMax = indices.get(indices.size() - 1);
+        if (actualMax > expectedMax * 2) {
+            log.warn("Test has large gaps in question orderIndex values. " +
+                "Expected max {}, found {}. This might indicate a data issue.",
+                expectedMax, actualMax);
+        }
+    }
+
+    private void validateAnswerOrderIndexContinuity(List<Answer> answers, int questionPosition) {
+        if (answers.isEmpty()) return;
+
+        List<Integer> indices = answers.stream()
+            .map(Answer::getOrderIndex)
+            .sorted()
+            .toList();
+
+        Set<Integer> uniqueIndices = new HashSet<>(indices);
+        if (uniqueIndices.size() != indices.size()) {
+            throw new IllegalStateException(
+                "Answers in question at position " + questionPosition + 
+                " have duplicate orderIndex values. Cannot publish."
+            );
+        }
     }
 
     @Override
@@ -143,26 +260,41 @@ public class TestServiceImpl implements TestService {
             .orElseThrow(() -> new NoSuchElementException(TEST_NOT_FOUND));
 
         List<Question> questions = questionRepository.findByTestIdOrderByOrderIndex(testId);
-        List<QuestionResponse> questionResponses = new ArrayList<>();
-
-        for (Question question : questions) {
-            List<Answer> answers = answerRepository.findByQuestionIdOrderByOrderIndex(question.getId());
-            List<AnswerResponse> answerResponses = answers.stream()
-                .map(a -> new AnswerResponse(a.getId(), a.getAnswerText(), a.getIsCorrect(), a.getOrderIndex()))
-                .toList();
-
-            questionResponses.add(new QuestionResponse(
-                question.getId(),
-                question.getQuestionType(),
-                question.getQuestionText(),
-                question.getImageUrl(),
-                question.getScore(),
-                question.getOrderIndex(),
-                question.getCorrectAnswer(),
-                answerResponses
-            ));
+        
+        if (questions.isEmpty()) {
+            return buildTestDetailResponse(test, questions, List.of());
         }
 
+        List<UUID> questionIds = questions.stream().map(Question::getId).toList();
+        List<Answer> allAnswers = answerRepository.findByQuestionIdInOrderByQuestionIdAndOrderIndex(questionIds);
+
+        Map<UUID, List<Answer>> answersByQuestionId = allAnswers.stream()
+            .collect(Collectors.groupingBy(Answer::getQuestionId));
+
+        List<QuestionResponse> questionResponses = questions.stream()
+            .map(question -> {
+                List<Answer> answers = answersByQuestionId.getOrDefault(question.getId(), List.of());
+                List<AnswerResponse> answerResponses = answers.stream()
+                    .map(a -> new AnswerResponse(a.getId(), a.getAnswerText(), a.getIsCorrect(), a.getOrderIndex()))
+                    .toList();
+
+                return new QuestionResponse(
+                    question.getId(),
+                    question.getQuestionType(),
+                    question.getQuestionText(),
+                    question.getImageUrl(),
+                    question.getScore(),
+                    question.getOrderIndex(),
+                    question.getCorrectAnswer(),
+                    answerResponses
+                );
+            })
+            .toList();
+
+        return buildTestDetailResponse(test, questions, questionResponses);
+    }
+
+    private TestDetailResponse buildTestDetailResponse(Test test, List<Question> questions, List<QuestionResponse> questionResponses) {
         List<QuestionTypeCount> questionTypeCounts = calculateQuestionTypeCounts(questions);
 
         return new TestDetailResponse(
@@ -407,5 +539,53 @@ public class TestServiceImpl implements TestService {
         return typeCounts.entrySet().stream()
             .map(entry -> new QuestionTypeCount(entry.getKey(), entry.getValue().intValue()))
             .toList();
+    }
+
+    private void validateQuestionOrderIndices(List<CreateQuestionRequest> questions) {
+        List<Integer> orderIndices = new ArrayList<>();
+        for (int i = 0; i < questions.size(); i++) {
+            CreateQuestionRequest q = questions.get(i);
+            Integer orderIndex = q.orderIndex() != null ? q.orderIndex() : i;
+            orderIndices.add(orderIndex);
+        }
+
+        Set<Integer> uniqueIndices = new HashSet<>(orderIndices);
+        if (uniqueIndices.size() != orderIndices.size()) {
+            Set<Integer> seen = new HashSet<>();
+            for (Integer idx : orderIndices) {
+                if (!seen.add(idx)) {
+                    throw new IllegalArgumentException("Duplicate question orderIndex found: " + idx + ". Each question must have a unique orderIndex.");
+                }
+            }
+        }
+
+        for (int i = 0; i < questions.size(); i++) {
+            CreateQuestionRequest q = questions.get(i);
+            if (q.answers() != null && !q.answers().isEmpty()) {
+                validateAnswerOrderIndices(q.answers(), i);
+            }
+        }
+    }
+
+    private void validateAnswerOrderIndices(List<CreateAnswerRequest> answers, int questionPosition) {
+        List<Integer> orderIndices = new ArrayList<>();
+        for (int i = 0; i < answers.size(); i++) {
+            CreateAnswerRequest a = answers.get(i);
+            Integer orderIndex = a.orderIndex() != null ? a.orderIndex() : i;
+            orderIndices.add(orderIndex);
+        }
+
+        Set<Integer> uniqueIndices = new HashSet<>(orderIndices);
+        if (uniqueIndices.size() != orderIndices.size()) {
+            Set<Integer> seen = new HashSet<>();
+            for (Integer idx : orderIndices) {
+                if (!seen.add(idx)) {
+                    throw new IllegalArgumentException(
+                        "Duplicate answer orderIndex found: " + idx + " in question at position " + questionPosition +
+                        ". Each answer must have a unique orderIndex within its question."
+                    );
+                }
+            }
+        }
     }
 }
