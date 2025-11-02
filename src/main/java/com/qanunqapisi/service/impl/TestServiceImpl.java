@@ -32,7 +32,7 @@ import com.qanunqapisi.dto.response.test.QuestionResponse;
 import com.qanunqapisi.dto.response.test.QuestionTypeCount;
 import com.qanunqapisi.dto.response.test.TestDetailResponse;
 import com.qanunqapisi.dto.response.test.TestResponse;
-import com.qanunqapisi.external.cloudinary.ImageUploadService;
+import com.qanunqapisi.service.external.cloudinary.ImageUploadService;
 import com.qanunqapisi.repository.AnswerRepository;
 import com.qanunqapisi.repository.QuestionRepository;
 import com.qanunqapisi.repository.RoleRepository;

@@ -1,4 +1,4 @@
-package com.qanunqapisi.external.email;
+package com.qanunqapisi.service.external.email;
 
 import com.qanunqapisi.exception.EmailSendException;
 import com.qanunqapisi.util.ErrorMessages;

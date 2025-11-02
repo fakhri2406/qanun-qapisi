@@ -11,8 +11,10 @@ public record ProfileResponse(
     LocalDateTime dateOfBirth,
     String profilePictureUrl,
     Boolean isPremium,
+    Boolean verified,
     String role,
     LocalDateTime lastLoginAt,
-    LocalDateTime createdAt
+    LocalDateTime createdAt,
+    LocalDateTime updatedAt
 ) {
 }

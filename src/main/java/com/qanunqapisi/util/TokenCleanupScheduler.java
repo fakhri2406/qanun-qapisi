@@ -1,4 +1,4 @@
-package com.qanunqapisi.service.scheduler;
+package com.qanunqapisi.util;
 
 import com.qanunqapisi.repository.RefreshTokenRepository;
 import com.qanunqapisi.repository.RevokedTokenRepository;

@@ -9,9 +9,9 @@ import com.qanunqapisi.dto.request.profile.UpdateProfileRequest;
 import com.qanunqapisi.dto.request.profile.VerifyEmailChangeRequest;
 import com.qanunqapisi.dto.response.profile.ProfileResponse;
 import com.qanunqapisi.exception.EmailSendException;
-import com.qanunqapisi.external.cloudinary.ImageUploadService;
-import com.qanunqapisi.external.email.EmailService;
-import com.qanunqapisi.external.email.EmailTemplateService;
+import com.qanunqapisi.service.external.cloudinary.ImageUploadService;
+import com.qanunqapisi.service.external.email.EmailService;
+import com.qanunqapisi.service.external.email.EmailTemplateService;
 import com.qanunqapisi.repository.RoleRepository;
 import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.service.ProfileService;
@@ -206,9 +206,11 @@ public class ProfileServiceImpl implements ProfileService {
             user.getDateOfBirth(),
             user.getProfilePictureUrl(),
             user.getIsPremium(),
+            user.getIsVerified(),
             role.getTitle(),
             user.getLastLoginAt(),
-            user.getCreatedAt()
+            user.getCreatedAt(),
+            user.getUpdatedAt()
         );
     }
 }

@@ -1,4 +1,4 @@
-package com.qanunqapisi.external.cloudinary;
+package com.qanunqapisi.service.external.cloudinary;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
