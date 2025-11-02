@@ -1,17 +1,19 @@
 package com.qanunqapisi.service.external.cloudinary;
 
+import java.io.IOException;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.qanunqapisi.exception.ImageUploadException;
 import com.qanunqapisi.util.ErrorMessages;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.util.Map;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -35,10 +37,7 @@ public class ImageUploadService {
                     "public_id", publicId,
                     "folder", folder,
                     "resource_type", "image",
-                    "transformation", ObjectUtils.asMap(
-                        "quality", "auto",
-                        "fetch_format", "auto"
-                    )
+                    "quality", "auto:good"
                 )
             );
 
