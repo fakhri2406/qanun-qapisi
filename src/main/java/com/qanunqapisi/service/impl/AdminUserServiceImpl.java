@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -36,8 +37,35 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<AdminUserResponse> listUsers(Pageable pageable) {
-        Page<User> users = userRepository.findAll(pageable);
+    public Page<AdminUserResponse> listUsers(String role, Boolean isActive, Boolean isVerified, String search, Pageable pageable) {
+        Specification<User> spec = (root, query, cb) -> cb.conjunction();
+        
+        if (role != null && !role.isEmpty()) {
+            Role roleEntity = roleRepository.findByTitle(role).orElse(null);
+            if (roleEntity != null) {
+                UUID roleId = roleEntity.getId();
+                spec = spec.and((root, query, cb) -> cb.equal(root.get("roleId"), roleId));
+            }
+        }
+        
+        if (isActive != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("isActive"), isActive));
+        }
+        
+        if (isVerified != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("isVerified"), isVerified));
+        }
+        
+        if (search != null && !search.isEmpty()) {
+            String searchLower = search.toLowerCase();
+            spec = spec.and((root, query, cb) -> cb.or(
+                cb.like(cb.lower(root.get("email")), "%" + searchLower + "%"),
+                cb.like(cb.lower(root.get("firstName")), "%" + searchLower + "%"),
+                cb.like(cb.lower(root.get("lastName")), "%" + searchLower + "%")
+            ));
+        }
+        
+        Page<User> users = userRepository.findAll(spec, pageable);
         return users.map(this::toAdminUserResponse);
     }
 

@@ -2,6 +2,7 @@ package com.qanunqapisi.repository;
 
 import com.qanunqapisi.domain.Question;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.UUID;
 public interface QuestionRepository extends JpaRepository<Question, UUID> {
     List<Question> findByTestIdOrderByOrderIndex(UUID testId);
 
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     void deleteByTestId(UUID testId);
 
     long countByTestId(UUID testId);

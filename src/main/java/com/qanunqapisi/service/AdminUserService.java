@@ -14,12 +14,16 @@ import java.util.UUID;
  */
 public interface AdminUserService {
     /**
-     * Lists all users with pagination.
+     * Lists all users with pagination and optional filtering.
      *
-     * @param pageable pagination information
+     * @param role       optional role filter (ADMIN, CUSTOMER)
+     * @param isActive   optional active status filter
+     * @param isVerified optional verified status filter
+     * @param search     optional search query for email, first name, or last name
+     * @param pageable   pagination information
      * @return page of users with their details
      */
-    Page<AdminUserResponse> listUsers(Pageable pageable);
+    Page<AdminUserResponse> listUsers(String role, Boolean isActive, Boolean isVerified, String search, Pageable pageable);
 
     /**
      * Retrieves detailed information about a specific user.

@@ -15,5 +15,7 @@ public interface TestRepository extends JpaRepository<Test, UUID>, JpaSpecificat
 
     Page<Test> findByStatusAndIsPremium(String status, Boolean isPremium, Pageable pageable);
 
+    Page<Test> findByIsPremium(Boolean isPremium, Pageable pageable);
+
     long countByStatus(String status);
 }

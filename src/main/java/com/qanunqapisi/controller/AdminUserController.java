@@ -38,13 +38,17 @@ public class AdminUserController {
     private final AdminUserService adminUserService;
 
     @GetMapping
-    @Operation(summary = "List users", description = "Lists all users with pagination")
+    @Operation(summary = "List users", description = "Lists all users with pagination and optional filtering")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Users retrieved successfully"),
         @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
         @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<Page<AdminUserResponse>> listUsers(
+        @Parameter(description = "Filter by role (ADMIN/CUSTOMER)") @RequestParam(required = false) String role,
+        @Parameter(description = "Filter by active status") @RequestParam(required = false) Boolean isActive,
+        @Parameter(description = "Filter by verified status") @RequestParam(required = false) Boolean isVerified,
+        @Parameter(description = "Search by email, first name, or last name") @RequestParam(required = false) String search,
         @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
         @Parameter(description = "Page size (max 100)") @RequestParam(defaultValue = "50") int size,
         @Parameter(description = "Sort field") @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -54,7 +58,7 @@ public class AdminUserController {
             Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), sort);
 
-        return ResponseEntity.ok(adminUserService.listUsers(pageable));
+        return ResponseEntity.ok(adminUserService.listUsers(role, isActive, isVerified, search, pageable));
     }
 
     @GetMapping("/{id}")

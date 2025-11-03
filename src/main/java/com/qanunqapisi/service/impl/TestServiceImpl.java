@@ -323,6 +323,8 @@ public class TestServiceImpl implements TestService {
             tests = testRepository.findByStatusAndIsPremium(status.toUpperCase(), isPremium, pageable);
         } else if (status != null) {
             tests = testRepository.findByStatus(status.toUpperCase(), pageable);
+        } else if (isPremium != null) {
+            tests = testRepository.findByIsPremium(isPremium, pageable);
         } else {
             tests = testRepository.findAll(pageable);
         }
