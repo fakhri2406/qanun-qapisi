@@ -1,15 +1,17 @@
 package com.qanunqapisi.service.impl;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
+import com.qanunqapisi.domain.*;
+import com.qanunqapisi.dto.request.test.CreateAnswerRequest;
+import com.qanunqapisi.dto.request.test.CreateQuestionRequest;
+import com.qanunqapisi.dto.request.test.CreateTestRequest;
+import com.qanunqapisi.dto.request.test.UpdateTestRequest;
+import com.qanunqapisi.dto.response.test.*;
+import com.qanunqapisi.repository.*;
+import com.qanunqapisi.service.TestService;
+import com.qanunqapisi.service.external.cloudinary.ImageUploadService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -18,43 +20,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.qanunqapisi.domain.Answer;
-import com.qanunqapisi.domain.Question;
-import com.qanunqapisi.domain.Role;
-import com.qanunqapisi.domain.Test;
-import com.qanunqapisi.domain.User;
-import com.qanunqapisi.dto.request.test.CreateAnswerRequest;
-import com.qanunqapisi.dto.request.test.CreateQuestionRequest;
-import com.qanunqapisi.dto.request.test.CreateTestRequest;
-import com.qanunqapisi.dto.request.test.UpdateTestRequest;
-import com.qanunqapisi.dto.response.test.AnswerResponse;
-import com.qanunqapisi.dto.response.test.QuestionResponse;
-import com.qanunqapisi.dto.response.test.QuestionTypeCount;
-import com.qanunqapisi.dto.response.test.TestDetailResponse;
-import com.qanunqapisi.dto.response.test.TestResponse;
-import com.qanunqapisi.service.external.cloudinary.ImageUploadService;
-import com.qanunqapisi.repository.AnswerRepository;
-import com.qanunqapisi.repository.QuestionRepository;
-import com.qanunqapisi.repository.RoleRepository;
-import com.qanunqapisi.repository.TestRepository;
-import com.qanunqapisi.repository.UserRepository;
-import com.qanunqapisi.service.TestService;
-import static com.qanunqapisi.util.ErrorMessages.CANNOT_START_PREMIUM_TEST;
-import static com.qanunqapisi.util.ErrorMessages.CLOSED_MULTIPLE_AT_LEAST_ONE;
-import static com.qanunqapisi.util.ErrorMessages.CLOSED_MULTIPLE_MUST_HAVE_ANSWER;
-import static com.qanunqapisi.util.ErrorMessages.CLOSED_SINGLE_MUST_HAVE_ANSWER;
-import static com.qanunqapisi.util.ErrorMessages.CLOSED_SINGLE_ONE_CORRECT;
-import static com.qanunqapisi.util.ErrorMessages.OPEN_TEXT_REQUIRES_ANSWER;
-import static com.qanunqapisi.util.ErrorMessages.QUESTION_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.TEST_ALREADY_PUBLISHED;
-import static com.qanunqapisi.util.ErrorMessages.TEST_MUST_HAVE_QUESTIONS;
-import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.USER_NOT_FOUND;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import static com.qanunqapisi.util.ErrorMessages.*;
 
 @Service
 @Transactional
@@ -124,7 +94,7 @@ public class TestServiceImpl implements TestService {
 
         if (request.questions() != null) {
             validateQuestionOrderIndices(request.questions());
-            
+
             questionRepository.deleteByTestId(testId);
 
             for (int i = 0; i < request.questions().size(); i++) {
@@ -184,11 +154,11 @@ public class TestServiceImpl implements TestService {
 
         for (Question question : questions) {
             List<Answer> answers = answersByQuestion.getOrDefault(question.getId(), List.of());
-            if ((CLOSED_SINGLE.equals(question.getQuestionType()) || 
-                 CLOSED_MULTIPLE.equals(question.getQuestionType())) && answers.isEmpty()) {
+            if ((CLOSED_SINGLE.equals(question.getQuestionType()) ||
+                CLOSED_MULTIPLE.equals(question.getQuestionType())) && answers.isEmpty()) {
                 throw new IllegalStateException(
-                    "Question at position " + question.getOrderIndex() + 
-                    " requires answers but has none. Cannot publish test."
+                    "Question at position " + question.getOrderIndex() +
+                        " requires answers but has none. Cannot publish test."
                 );
             }
 
@@ -223,7 +193,7 @@ public class TestServiceImpl implements TestService {
         if (uniqueIndices.size() != indices.size()) {
             throw new IllegalStateException(
                 "Questions have duplicate orderIndex values. Cannot publish. " +
-                "Please edit the test to fix ordering."
+                    "Please edit the test to fix ordering."
             );
         }
 
@@ -231,7 +201,7 @@ public class TestServiceImpl implements TestService {
         int actualMax = indices.get(indices.size() - 1);
         if (actualMax > expectedMax * 2) {
             log.warn("Test has large gaps in question orderIndex values. " +
-                "Expected max {}, found {}. This might indicate a data issue.",
+                    "Expected max {}, found {}. This might indicate a data issue.",
                 expectedMax, actualMax);
         }
     }
@@ -247,8 +217,8 @@ public class TestServiceImpl implements TestService {
         Set<Integer> uniqueIndices = new HashSet<>(indices);
         if (uniqueIndices.size() != indices.size()) {
             throw new IllegalStateException(
-                "Answers in question at position " + questionPosition + 
-                " have duplicate orderIndex values. Cannot publish."
+                "Answers in question at position " + questionPosition +
+                    " have duplicate orderIndex values. Cannot publish."
             );
         }
     }
@@ -260,7 +230,7 @@ public class TestServiceImpl implements TestService {
             .orElseThrow(() -> new NoSuchElementException(TEST_NOT_FOUND));
 
         List<Question> questions = questionRepository.findByTestIdOrderByOrderIndex(testId);
-        
+
         if (questions.isEmpty()) {
             return buildTestDetailResponse(test, questions, List.of());
         }
@@ -584,7 +554,7 @@ public class TestServiceImpl implements TestService {
                 if (!seen.add(idx)) {
                     throw new IllegalArgumentException(
                         "Duplicate answer orderIndex found: " + idx + " in question at position " + questionPosition +
-                        ". Each answer must have a unique orderIndex within its question."
+                            ". Each answer must have a unique orderIndex within its question."
                     );
                 }
             }

@@ -39,7 +39,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional(readOnly = true)
     public Page<AdminUserResponse> listUsers(String role, Boolean isActive, Boolean isVerified, String search, Pageable pageable) {
         Specification<User> spec = (root, query, cb) -> cb.conjunction();
-        
+
         if (role != null && !role.isEmpty()) {
             Role roleEntity = roleRepository.findByTitle(role).orElse(null);
             if (roleEntity != null) {
@@ -47,15 +47,15 @@ public class AdminUserServiceImpl implements AdminUserService {
                 spec = spec.and((root, query, cb) -> cb.equal(root.get("roleId"), roleId));
             }
         }
-        
+
         if (isActive != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("isActive"), isActive));
         }
-        
+
         if (isVerified != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("isVerified"), isVerified));
         }
-        
+
         if (search != null && !search.isEmpty()) {
             String searchLower = search.toLowerCase();
             spec = spec.and((root, query, cb) -> cb.or(
@@ -64,7 +64,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                 cb.like(cb.lower(root.get("lastName")), "%" + searchLower + "%")
             ));
         }
-        
+
         Page<User> users = userRepository.findAll(spec, pageable);
         return users.map(this::toAdminUserResponse);
     }
