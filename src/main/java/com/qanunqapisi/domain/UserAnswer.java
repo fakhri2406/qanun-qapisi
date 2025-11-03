@@ -1,8 +1,9 @@
 package com.qanunqapisi.domain;
 
-import com.qanunqapisi.config.jpa.UuidListConverter;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,8 +27,8 @@ public class UserAnswer extends BaseEntity {
     @Column(name = "question_id", nullable = false)
     private UUID questionId;
 
-    @Column(name = "selected_answer_ids", columnDefinition = "uuid[]")
-    @Convert(converter = UuidListConverter.class)
+    @Column(name = "selected_answer_ids")
+    @JdbcTypeCode(SqlTypes.ARRAY)
     private List<UUID> selectedAnswerIds;
 
     @Column(name = "open_text_answer", columnDefinition = "TEXT")
