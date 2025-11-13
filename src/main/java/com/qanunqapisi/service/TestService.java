@@ -1,14 +1,15 @@
 package com.qanunqapisi.service;
 
-import com.qanunqapisi.dto.request.test.CreateTestRequest;
-import com.qanunqapisi.dto.request.test.UpdateTestRequest;
-import com.qanunqapisi.dto.response.test.TestDetailResponse;
-import com.qanunqapisi.dto.response.test.TestResponse;
+import java.util.UUID;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.UUID;
+import com.qanunqapisi.dto.request.test.CreateTestRequest;
+import com.qanunqapisi.dto.request.test.UpdateTestRequest;
+import com.qanunqapisi.dto.response.test.TestDetailResponse;
+import com.qanunqapisi.dto.response.test.TestResponse;
 
 /**
  * Service interface for test management operations.
@@ -72,12 +73,12 @@ public interface TestService {
     Page<TestResponse> listTests(String status, Boolean isPremium, Pageable pageable);
 
     /**
-     * Lists published tests available to the authenticated user.
-     * Filters premium tests based on user's subscription status.
+     * Lists all published tests for the authenticated user.
+     * Shows both premium and non-premium tests in the list.
+     * Access control is enforced at the detail and start endpoints.
      *
      * @param pageable pagination information
-     * @return page of published tests accessible to the user
-     * @throws NoSuchElementException if authenticated user not found
+     * @return page of all published tests
      */
     Page<TestResponse> listPublishedTestsForUser(Pageable pageable);
 
