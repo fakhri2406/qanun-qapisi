@@ -20,6 +20,8 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, UUID> 
 
     Optional<TestAttempt> findByUserIdAndTestIdAndStatus(UUID userId, UUID testId, String status);
 
+    List<TestAttempt> findByUserIdAndTestIdAndStatusOrderByStartedAtDesc(UUID userId, UUID testId, String status);
+
     Page<TestAttempt> findByTestIdAndStatus(UUID testId, String status, Pageable pageable);
 
     long countDistinctUserIdByTestId(UUID testId);
