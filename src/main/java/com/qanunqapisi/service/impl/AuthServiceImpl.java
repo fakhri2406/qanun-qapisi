@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -83,6 +84,9 @@ public class AuthServiceImpl implements AuthService {
     private final EmailProperties emailProperties;
     private final EmailService emailService;
     private final EmailTemplateService emailTemplateService;
+
+    @Value("${app.device-bypass-email:}")
+    private String deviceBypassEmail;
 
     @Override
     public void signup(@Valid SignupRequest request) {
@@ -228,14 +232,22 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalStateException(ACCOUNT_NOT_VERIFIED);
         }
 
-        if (user.getDeviceId() != null && !user.getDeviceId().equals(request.deviceId())) {
-            throw new IllegalStateException("Bu hesab artıq başqa cihazda istifadə olunur. Əvvəlcə digər cihazdan çıxış edin.");
+        boolean isBypassUser = deviceBypassEmail != null && 
+                               !deviceBypassEmail.isEmpty() && 
+                               deviceBypassEmail.equalsIgnoreCase(user.getEmail());
+        
+        if (!isBypassUser) {
+            if (user.getDeviceId() != null && !user.getDeviceId().equals(request.deviceId())) {
+                throw new IllegalStateException("Bu hesab artıq başqa cihazda istifadə olunur. Əvvəlcə digər cihazdan çıxış edin.");
+            }
+            user.setDeviceId(request.deviceId());
+        } else {
+            log.debug("Device ID check bypassed for user: {}", user.getEmail());
         }
 
         user.setFailedLoginAttempts(0);
         user.setLockedUntil(null);
         user.setLastLoginAt(LocalDateTime.now());
-        user.setDeviceId(request.deviceId());
         userRepository.save(user);
 
         return createAuthResponse(user);
@@ -275,7 +287,13 @@ public class AuthServiceImpl implements AuthService {
 
                 refreshTokenRepository.deleteByUserId(user.getId());
                 
-                user.setDeviceId(null);
+                boolean isBypassUser = deviceBypassEmail != null && 
+                                       !deviceBypassEmail.isEmpty() && 
+                                       deviceBypassEmail.equalsIgnoreCase(user.getEmail());
+                
+                if (!isBypassUser) {
+                    user.setDeviceId(null);
+                }
                 userRepository.save(user);
             }
         }
