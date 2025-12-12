@@ -1,12 +1,29 @@
 package com.qanunqapisi.controller;
 
+import java.util.Map;
+
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.qanunqapisi.dto.request.profile.ChangeEmailRequest;
 import com.qanunqapisi.dto.request.profile.ChangePasswordRequest;
+import com.qanunqapisi.dto.request.profile.DeleteAccountRequest;
 import com.qanunqapisi.dto.request.profile.UpdateProfileRequest;
 import com.qanunqapisi.dto.request.profile.VerifyEmailChangeRequest;
 import com.qanunqapisi.dto.response.error.ErrorResponse;
 import com.qanunqapisi.dto.response.profile.ProfileResponse;
 import com.qanunqapisi.service.ProfileService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,13 +33,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/profile")
@@ -110,6 +120,18 @@ public class ProfileController {
     })
     public ResponseEntity<Void> deleteProfilePicture() {
         profileService.deleteProfilePicture();
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/account")
+    @Operation(summary = "Delete account", description = "Permanently deletes the user's account and all associated data. This action cannot be undone.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Account deleted successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid password", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public ResponseEntity<Void> deleteAccount(@Valid @RequestBody DeleteAccountRequest request) {
+        profileService.deleteAccount(request.password());
         return ResponseEntity.noContent().build();
     }
 }

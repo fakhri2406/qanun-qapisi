@@ -1,25 +1,12 @@
 package com.qanunqapisi.service.impl;
 
-import com.qanunqapisi.config.email.EmailProperties;
-import com.qanunqapisi.domain.Role;
-import com.qanunqapisi.domain.User;
-import com.qanunqapisi.dto.request.profile.ChangeEmailRequest;
-import com.qanunqapisi.dto.request.profile.ChangePasswordRequest;
-import com.qanunqapisi.dto.request.profile.UpdateProfileRequest;
-import com.qanunqapisi.dto.request.profile.VerifyEmailChangeRequest;
-import com.qanunqapisi.dto.response.profile.ProfileResponse;
-import com.qanunqapisi.exception.EmailSendException;
-import com.qanunqapisi.repository.RoleRepository;
-import com.qanunqapisi.repository.UserRepository;
-import com.qanunqapisi.service.ProfileService;
-import com.qanunqapisi.service.external.cloudinary.ImageUploadService;
-import com.qanunqapisi.service.external.email.EmailService;
-import com.qanunqapisi.service.external.email.EmailTemplateService;
-import com.qanunqapisi.util.Hasher;
-import com.qanunqapisi.util.TokenGenerator;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,11 +14,43 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import com.qanunqapisi.config.email.EmailProperties;
+import com.qanunqapisi.domain.Role;
+import com.qanunqapisi.domain.TestAttempt;
+import com.qanunqapisi.domain.User;
+import com.qanunqapisi.dto.request.profile.ChangeEmailRequest;
+import com.qanunqapisi.dto.request.profile.ChangePasswordRequest;
+import com.qanunqapisi.dto.request.profile.UpdateProfileRequest;
+import com.qanunqapisi.dto.request.profile.VerifyEmailChangeRequest;
+import com.qanunqapisi.dto.response.profile.ProfileResponse;
+import com.qanunqapisi.exception.EmailSendException;
+import com.qanunqapisi.repository.RefreshTokenRepository;
+import com.qanunqapisi.repository.RevokedTokenRepository;
+import com.qanunqapisi.repository.RoleRepository;
+import com.qanunqapisi.repository.TestAttemptRepository;
+import com.qanunqapisi.repository.UserAnswerRepository;
+import com.qanunqapisi.repository.UserRepository;
+import com.qanunqapisi.service.ProfileService;
+import com.qanunqapisi.service.external.cloudinary.ImageUploadService;
+import com.qanunqapisi.service.external.email.EmailService;
+import com.qanunqapisi.service.external.email.EmailTemplateService;
+import static com.qanunqapisi.util.ErrorMessages.EMAIL_CHANGE_EXPIRED;
+import static com.qanunqapisi.util.ErrorMessages.EMAIL_CHANGE_INVALID;
+import static com.qanunqapisi.util.ErrorMessages.EMAIL_CHANGE_LOCKED;
+import static com.qanunqapisi.util.ErrorMessages.EMAIL_CHANGE_MISMATCH;
+import static com.qanunqapisi.util.ErrorMessages.EMAIL_IN_USE;
+import static com.qanunqapisi.util.ErrorMessages.FAILED_TO_SEND_EMAIL;
+import static com.qanunqapisi.util.ErrorMessages.INVALID_CURRENT_PASSWORD;
+import static com.qanunqapisi.util.ErrorMessages.NEW_EMAIL_SAME;
+import static com.qanunqapisi.util.ErrorMessages.NOT_AUTHENTICATED;
+import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
+import static com.qanunqapisi.util.ErrorMessages.USER_NOT_FOUND;
+import com.qanunqapisi.util.Hasher;
+import com.qanunqapisi.util.TokenGenerator;
 
-import static com.qanunqapisi.util.ErrorMessages.*;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Transactional
@@ -44,6 +63,10 @@ public class ProfileServiceImpl implements ProfileService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final RevokedTokenRepository revokedTokenRepository;
+    private final TestAttemptRepository testAttemptRepository;
+    private final UserAnswerRepository userAnswerRepository;
     private final Hasher hasher;
     private final TokenGenerator tokenGenerator;
     private final EmailProperties emailProperties;
@@ -183,6 +206,44 @@ public class ProfileServiceImpl implements ProfileService {
             user.setProfilePictureUrl(null);
             userRepository.save(user);
         }
+    }
+
+    @Override
+    public void deleteAccount(String password) {
+        User user = getCurrentUser();
+
+        if (!hasher.matches(password, user.getPasswordHash())) {
+            throw new BadCredentialsException(INVALID_CURRENT_PASSWORD);
+        }
+
+        UUID userId = user.getId();
+
+        if (user.getProfilePictureUrl() != null) {
+            try {
+                imageUploadService.deleteImage(user.getProfilePictureUrl());
+            } catch (Exception e) {
+                log.warn("Failed to delete profile picture for user {}: {}", userId, e.getMessage());
+            }
+        }
+
+        List<TestAttempt> testAttempts = testAttemptRepository.findByUserId(userId);
+        List<UUID> testAttemptIds = testAttempts.stream()
+            .map(TestAttempt::getId)
+            .collect(Collectors.toList());
+
+        if (!testAttemptIds.isEmpty()) {
+            userAnswerRepository.deleteByTestAttemptIdIn(testAttemptIds);
+        }
+
+        testAttemptRepository.deleteByUserId(userId);
+
+        refreshTokenRepository.deleteByUserId(userId);
+
+        revokedTokenRepository.deleteByUserId(userId);
+
+        userRepository.delete(user);
+
+        log.info("Successfully deleted user account: {}", userId);
     }
 
     private User getCurrentUser() {

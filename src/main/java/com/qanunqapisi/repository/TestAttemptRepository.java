@@ -1,14 +1,16 @@
 package com.qanunqapisi.repository;
 
-import com.qanunqapisi.domain.TestAttempt;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.stereotype.Repository;
+
+import com.qanunqapisi.domain.TestAttempt;
 
 @Repository
 public interface TestAttemptRepository extends JpaRepository<TestAttempt, UUID> {
@@ -27,4 +29,7 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, UUID> 
     long countDistinctUserIdByTestId(UUID testId);
 
     long count();
+
+    @Modifying
+    void deleteByUserId(UUID userId);
 }

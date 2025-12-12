@@ -1,5 +1,8 @@
 package com.qanunqapisi.config.openapi;
 
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
@@ -7,8 +10,7 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import io.swagger.v3.oas.models.servers.Server;
 
 @Configuration
 public class OpenApiConfig {
@@ -17,6 +19,12 @@ public class OpenApiConfig {
         final String securitySchemeName = "bearerAuth";
 
         return new OpenAPI()
+            .addServersItem(new Server()
+                .url("https://vmi2809419.contaboserver.net/api/v1")
+                .description("Production server"))
+            .addServersItem(new Server()
+                .url("http://localhost:8080/api/v1")
+                .description("Local development server"))
             .info(new Info()
                 .title("Qanun Qapısı API")
                 .version("1.0.0")

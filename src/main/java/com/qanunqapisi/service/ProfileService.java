@@ -1,11 +1,12 @@
 package com.qanunqapisi.service;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import com.qanunqapisi.dto.request.profile.ChangeEmailRequest;
 import com.qanunqapisi.dto.request.profile.ChangePasswordRequest;
 import com.qanunqapisi.dto.request.profile.UpdateProfileRequest;
 import com.qanunqapisi.dto.request.profile.VerifyEmailChangeRequest;
 import com.qanunqapisi.dto.response.profile.ProfileResponse;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Service interface for user profile management operations.
@@ -73,4 +74,14 @@ public interface ProfileService {
      * @throws ImageUploadException   if image deletion fails
      */
     void deleteProfilePicture();
+
+    /**
+     * Deletes the authenticated user's account and all associated data.
+     * This action is permanent and cannot be undone.
+     *
+     * @param password the user's current password for confirmation
+     * @throws NoSuchElementException if authenticated user not found
+     * @throws IllegalArgumentException if password is incorrect
+     */
+    void deleteAccount(String password);
 }
