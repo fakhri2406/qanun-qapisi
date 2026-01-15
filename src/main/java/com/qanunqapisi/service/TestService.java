@@ -4,7 +4,6 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.qanunqapisi.dto.request.test.CreateTestRequest;
 import com.qanunqapisi.dto.request.test.UpdateTestRequest;
@@ -100,24 +99,4 @@ public interface TestService {
      * @throws NoSuchElementException if test not found
      */
     void recalculateTestScores(UUID testId);
-
-    /**
-     * Uploads an image for a specific question.
-     *
-     * @param questionId the ID of the question
-     * @param file       the image file to upload
-     * @return the URL of the uploaded image
-     * @throws NoSuchElementException if question not found
-     * @throws ImageUploadException   if image upload fails
-     */
-    String uploadQuestionImage(UUID questionId, MultipartFile file);
-
-    /**
-     * Deletes the image associated with a question.
-     *
-     * @param questionId the ID of the question
-     * @throws NoSuchElementException if question not found
-     * @throws ImageUploadException   if image deletion fails
-     */
-    void deleteQuestionImage(UUID questionId);
 }

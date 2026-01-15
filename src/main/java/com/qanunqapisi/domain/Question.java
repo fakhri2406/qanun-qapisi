@@ -26,9 +26,6 @@ public class Question extends BaseEntity {
     @Column(name = "question_text", nullable = false, columnDefinition = "TEXT")
     private String questionText;
 
-    @Column(name = "image_url", length = 500)
-    private String imageUrl;
-
     @Column(name = "score", nullable = false)
     private Integer score;
 

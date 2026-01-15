@@ -16,8 +16,6 @@ public record CreateQuestionRequest(
     @NotBlank(message = "Question text is required")
     String questionText,
 
-    String imageUrl,
-
     @NotNull(message = "Score is required")
     @Min(value = 1, message = "Score must be at least 1")
     Integer score,

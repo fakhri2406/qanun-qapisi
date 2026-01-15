@@ -1,7 +1,5 @@
 package com.qanunqapisi.service;
 
-import org.springframework.web.multipart.MultipartFile;
-
 import com.qanunqapisi.dto.request.profile.ChangeEmailRequest;
 import com.qanunqapisi.dto.request.profile.ChangePasswordRequest;
 import com.qanunqapisi.dto.request.profile.UpdateProfileRequest;
@@ -56,24 +54,6 @@ public interface ProfileService {
      * @throws IllegalArgumentException if verification code is invalid or expired
      */
     void verifyEmailChange(VerifyEmailChangeRequest request);
-
-    /**
-     * Uploads a new profile picture for the authenticated user.
-     *
-     * @param file the image file to upload
-     * @return the URL of the uploaded profile picture
-     * @throws NoSuchElementException if authenticated user not found
-     * @throws ImageUploadException   if image upload fails
-     */
-    String uploadProfilePicture(MultipartFile file);
-
-    /**
-     * Deletes the authenticated user's profile picture.
-     *
-     * @throws NoSuchElementException if authenticated user not found
-     * @throws ImageUploadException   if image deletion fails
-     */
-    void deleteProfilePicture();
 
     /**
      * Deletes the authenticated user's account and all associated data.

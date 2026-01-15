@@ -1,8 +1,5 @@
 package com.qanunqapisi.controller;
 
-import java.util.Map;
-
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -11,9 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.qanunqapisi.dto.request.profile.ChangeEmailRequest;
 import com.qanunqapisi.dto.request.profile.ChangePasswordRequest;
@@ -98,29 +93,6 @@ public class ProfileController {
     public ResponseEntity<Void> verifyEmailChange(@Valid @RequestBody VerifyEmailChangeRequest request) {
         profileService.verifyEmailChange(request);
         return ResponseEntity.ok().build();
-    }
-
-    @PostMapping(value = "/picture", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload profile picture", description = "Uploads a new profile picture (max 5MB, jpg/png)")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Picture uploaded successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid file", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-    })
-    public ResponseEntity<Map<String, String>> uploadProfilePicture(@RequestParam("file") MultipartFile file) {
-        String imageUrl = profileService.uploadProfilePicture(file);
-        return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
-    }
-
-    @DeleteMapping("/picture")
-    @Operation(summary = "Delete profile picture", description = "Removes the user's profile picture")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "204", description = "Picture deleted successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-    })
-    public ResponseEntity<Void> deleteProfilePicture() {
-        profileService.deleteProfilePicture();
-        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/account")

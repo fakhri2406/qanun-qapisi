@@ -45,9 +45,6 @@ public class User extends BaseEntity {
     @Column(name = "date_of_birth")
     private LocalDateTime dateOfBirth;
 
-    @Column(name = "profile_picture_url", length = 500)
-    private String profilePictureUrl;
-
     @Column(name = "device_id", length = 255)
     private String deviceId;
 

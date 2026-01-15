@@ -29,7 +29,6 @@ val flywayVersion by extra("10.16.0")
 val jjwtVersion by extra("0.11.5")
 val mapstructVersion by extra("1.5.3.Final")
 val lombokMapstructVersion by extra("0.2.0")
-val cloudinaryVersion by extra("1.34.0")
 val springdocVersion by extra("2.8.9")
 val jacksonVersion by extra("2.17.2")
 val springDotenvVersion by extra("4.0.0")
@@ -62,9 +61,6 @@ dependencies {
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok-mapstruct-binding:$lombokMapstructVersion")
-    
-    // Cloudinary
-    implementation("com.cloudinary:cloudinary-http44:$cloudinaryVersion")
     
     // OpenAPI Documentation
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")

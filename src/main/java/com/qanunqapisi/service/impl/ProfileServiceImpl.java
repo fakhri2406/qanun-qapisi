@@ -12,7 +12,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.qanunqapisi.config.email.EmailProperties;
 import com.qanunqapisi.domain.Role;
@@ -31,7 +30,6 @@ import com.qanunqapisi.repository.TestAttemptRepository;
 import com.qanunqapisi.repository.UserAnswerRepository;
 import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.service.ProfileService;
-import com.qanunqapisi.service.external.cloudinary.ImageUploadService;
 import com.qanunqapisi.service.external.email.EmailService;
 import com.qanunqapisi.service.external.email.EmailTemplateService;
 import static com.qanunqapisi.util.ErrorMessages.EMAIL_CHANGE_EXPIRED;
@@ -72,7 +70,6 @@ public class ProfileServiceImpl implements ProfileService {
     private final EmailProperties emailProperties;
     private final EmailService emailService;
     private final EmailTemplateService emailTemplateService;
-    private final ImageUploadService imageUploadService;
 
     @Override
     @Transactional(readOnly = true)
@@ -183,32 +180,6 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     @Override
-    public String uploadProfilePicture(MultipartFile file) {
-        User user = getCurrentUser();
-
-        if (user.getProfilePictureUrl() != null) {
-            imageUploadService.deleteImage(user.getProfilePictureUrl());
-        }
-
-        String imageUrl = imageUploadService.uploadImage(file, "profile-pictures");
-        user.setProfilePictureUrl(imageUrl);
-        userRepository.save(user);
-
-        return imageUrl;
-    }
-
-    @Override
-    public void deleteProfilePicture() {
-        User user = getCurrentUser();
-
-        if (user.getProfilePictureUrl() != null) {
-            imageUploadService.deleteImage(user.getProfilePictureUrl());
-            user.setProfilePictureUrl(null);
-            userRepository.save(user);
-        }
-    }
-
-    @Override
     public void deleteAccount(String password) {
         User user = getCurrentUser();
 
@@ -217,14 +188,6 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         UUID userId = user.getId();
-
-        if (user.getProfilePictureUrl() != null) {
-            try {
-                imageUploadService.deleteImage(user.getProfilePictureUrl());
-            } catch (Exception e) {
-                log.warn("Failed to delete profile picture for user {}: {}", userId, e.getMessage());
-            }
-        }
 
         List<TestAttempt> testAttempts = testAttemptRepository.findByUserId(userId);
         List<UUID> testAttemptIds = testAttempts.stream()
@@ -265,7 +228,6 @@ public class ProfileServiceImpl implements ProfileService {
             user.getFirstName(),
             user.getLastName(),
             user.getDateOfBirth(),
-            user.getProfilePictureUrl(),
             user.getIsPremium(),
             user.getIsVerified(),
             role.getTitle(),

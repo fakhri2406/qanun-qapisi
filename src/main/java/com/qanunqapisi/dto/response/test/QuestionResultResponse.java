@@ -7,7 +7,6 @@ public record QuestionResultResponse(
     UUID questionId,
     String questionType,
     String questionText,
-    String imageUrl,
     Integer score,
     Integer orderIndex,
     Boolean isCorrect,

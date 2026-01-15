@@ -9,7 +9,6 @@ public record MeResponse(
     String firstName,
     String lastName,
     LocalDateTime dateOfBirth,
-    String profilePictureUrl,
     Boolean isPremium,
     String role,
     LocalDateTime lastLoginAt

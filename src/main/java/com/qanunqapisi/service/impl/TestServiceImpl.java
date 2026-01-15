@@ -16,7 +16,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.qanunqapisi.domain.Answer;
 import com.qanunqapisi.domain.Question;
@@ -38,14 +37,12 @@ import com.qanunqapisi.repository.RoleRepository;
 import com.qanunqapisi.repository.TestRepository;
 import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.service.TestService;
-import com.qanunqapisi.service.external.cloudinary.ImageUploadService;
 import static com.qanunqapisi.util.ErrorMessages.CANNOT_START_PREMIUM_TEST;
 import static com.qanunqapisi.util.ErrorMessages.CLOSED_MULTIPLE_AT_LEAST_ONE;
 import static com.qanunqapisi.util.ErrorMessages.CLOSED_MULTIPLE_MUST_HAVE_ANSWER;
 import static com.qanunqapisi.util.ErrorMessages.CLOSED_SINGLE_MUST_HAVE_ANSWER;
 import static com.qanunqapisi.util.ErrorMessages.CLOSED_SINGLE_ONE_CORRECT;
 import static com.qanunqapisi.util.ErrorMessages.OPEN_TEXT_REQUIRES_ANSWER;
-import static com.qanunqapisi.util.ErrorMessages.QUESTION_NOT_FOUND;
 import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
 import static com.qanunqapisi.util.ErrorMessages.TEST_ALREADY_PUBLISHED;
 import static com.qanunqapisi.util.ErrorMessages.TEST_MUST_HAVE_QUESTIONS;
@@ -72,7 +69,6 @@ public class TestServiceImpl implements TestService {
     private final AnswerRepository answerRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final ImageUploadService imageUploadService;
 
     @Override
     public TestDetailResponse createTest(@Valid CreateTestRequest request) {
@@ -282,7 +278,6 @@ public class TestServiceImpl implements TestService {
                     question.getId(),
                     question.getQuestionType(),
                     question.getQuestionText(),
-                    question.getImageUrl(),
                     question.getScore(),
                     question.getOrderIndex(),
                     question.getCorrectAnswer(),
@@ -372,7 +367,6 @@ public class TestServiceImpl implements TestService {
             .testId(testId)
             .questionType(request.questionType())
             .questionText(request.questionText())
-            .imageUrl(request.imageUrl())
             .score(request.score())
             .orderIndex(request.orderIndex() != null ? request.orderIndex() : orderIndex)
             .correctAnswer(request.correctAnswer() != null ? normalizeText(request.correctAnswer()) : null)
@@ -449,34 +443,6 @@ public class TestServiceImpl implements TestService {
             throw new IllegalArgumentException(OPEN_TEXT_REQUIRES_ANSWER);
         }
 
-    }
-
-    @Override
-    public String uploadQuestionImage(UUID questionId, MultipartFile file) {
-        Question question = questionRepository.findById(questionId)
-            .orElseThrow(() -> new NoSuchElementException(QUESTION_NOT_FOUND));
-
-        if (question.getImageUrl() != null) {
-            imageUploadService.deleteImage(question.getImageUrl());
-        }
-
-        String imageUrl = imageUploadService.uploadImage(file, "question-images");
-        question.setImageUrl(imageUrl);
-        questionRepository.save(question);
-
-        return imageUrl;
-    }
-
-    @Override
-    public void deleteQuestionImage(UUID questionId) {
-        Question question = questionRepository.findById(questionId)
-            .orElseThrow(() -> new NoSuchElementException(QUESTION_NOT_FOUND));
-
-        if (question.getImageUrl() != null) {
-            imageUploadService.deleteImage(question.getImageUrl());
-            question.setImageUrl(null);
-            questionRepository.save(question);
-        }
     }
 
     @Override
