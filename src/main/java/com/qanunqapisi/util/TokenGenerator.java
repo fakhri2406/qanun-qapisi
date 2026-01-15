@@ -29,7 +29,6 @@ public class TokenGenerator {
             .claim("email", user.getEmail())
             .claim("firstName", user.getFirstName())
             .claim("lastName", user.getLastName())
-            .claim("profilePictureUrl", user.getProfilePictureUrl())
             .claim("isActive", user.getIsActive())
             .claim("isPremium", user.getIsPremium())
             .claim("isVerified", user.getIsVerified())

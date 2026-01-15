@@ -327,7 +327,6 @@ public class AuthServiceImpl implements AuthService {
             user.getFirstName(),
             user.getLastName(),
             user.getDateOfBirth(),
-            user.getProfilePictureUrl(),
             user.getIsPremium(),
             role.getTitle(),
             user.getLastLoginAt()
