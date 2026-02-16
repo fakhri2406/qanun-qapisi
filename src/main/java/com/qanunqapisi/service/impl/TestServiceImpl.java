@@ -34,7 +34,9 @@ import com.qanunqapisi.dto.response.test.TestResponse;
 import com.qanunqapisi.repository.AnswerRepository;
 import com.qanunqapisi.repository.QuestionRepository;
 import com.qanunqapisi.repository.RoleRepository;
+import com.qanunqapisi.repository.TestAttemptRepository;
 import com.qanunqapisi.repository.TestRepository;
+import com.qanunqapisi.repository.UserAnswerRepository;
 import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.service.TestService;
 import static com.qanunqapisi.util.ErrorMessages.CANNOT_START_PREMIUM_TEST;
@@ -67,6 +69,8 @@ public class TestServiceImpl implements TestService {
     private final TestRepository testRepository;
     private final QuestionRepository questionRepository;
     private final AnswerRepository answerRepository;
+    private final TestAttemptRepository testAttemptRepository;
+    private final UserAnswerRepository userAnswerRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
 
@@ -138,6 +142,14 @@ public class TestServiceImpl implements TestService {
     public void deleteTest(UUID testId) {
         Test test = testRepository.findById(testId)
             .orElseThrow(() -> new NoSuchElementException(TEST_NOT_FOUND));
+
+        List<UUID> attemptIds = testAttemptRepository.findByTestId(testId)
+            .stream().map(com.qanunqapisi.domain.TestAttempt::getId).toList();
+        if (!attemptIds.isEmpty()) {
+            userAnswerRepository.deleteByTestAttemptIdIn(attemptIds);
+        }
+
+        testAttemptRepository.deleteByTestId(testId);
 
         testRepository.delete(test);
     }

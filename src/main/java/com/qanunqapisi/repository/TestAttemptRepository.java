@@ -30,6 +30,11 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, UUID> 
 
     long count();
 
+    List<TestAttempt> findByTestId(UUID testId);
+
     @Modifying
     void deleteByUserId(UUID userId);
+
+    @Modifying
+    void deleteByTestId(UUID testId);
 }
