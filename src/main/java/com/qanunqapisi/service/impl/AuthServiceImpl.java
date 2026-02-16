@@ -232,11 +232,7 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalStateException(ACCOUNT_NOT_VERIFIED);
         }
 
-        boolean isBypassUser = deviceBypassEmail != null && 
-                               !deviceBypassEmail.isEmpty() && 
-                               deviceBypassEmail.equalsIgnoreCase(user.getEmail());
-        
-        if (!isBypassUser) {
+        if (!isDeviceCheckBypassed(user)) {
             if (user.getDeviceId() != null && !user.getDeviceId().equals(request.deviceId())) {
                 throw new IllegalStateException("Bu hesab artıq başqa cihazda istifadə olunur. Əvvəlcə digər cihazdan çıxış edin.");
             }
@@ -287,11 +283,7 @@ public class AuthServiceImpl implements AuthService {
 
                 refreshTokenRepository.deleteByUserId(user.getId());
                 
-                boolean isBypassUser = deviceBypassEmail != null && 
-                                       !deviceBypassEmail.isEmpty() && 
-                                       deviceBypassEmail.equalsIgnoreCase(user.getEmail());
-                
-                if (!isBypassUser) {
+                if (!isDeviceCheckBypassed(user)) {
                     user.setDeviceId(null);
                 }
                 userRepository.save(user);
@@ -392,6 +384,16 @@ public class AuthServiceImpl implements AuthService {
         user.setPasswordResetAttempts(0);
         user.setPasswordResetLockedUntil(null);
         userRepository.save(user);
+    }
+
+    private boolean isDeviceCheckBypassed(User user) {
+        if (deviceBypassEmail != null && !deviceBypassEmail.isEmpty()
+                && deviceBypassEmail.equalsIgnoreCase(user.getEmail())) {
+            return true;
+        }
+        return roleRepository.findById(user.getRoleId())
+                .map(role -> "ADMIN".equals(role.getTitle()))
+                .orElse(false);
     }
 
     private AuthResponse createAuthResponse(User user) {
