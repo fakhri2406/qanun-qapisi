@@ -125,6 +125,13 @@ public class TestServiceImpl implements TestService {
         if (request.questions() != null) {
             validateQuestionOrderIndices(request.questions());
 
+            List<UUID> attemptIds = testAttemptRepository.findByTestId(testId)
+                .stream().map(com.qanunqapisi.domain.TestAttempt::getId).toList();
+            if (!attemptIds.isEmpty()) {
+                userAnswerRepository.deleteByTestAttemptIdIn(attemptIds);
+                testAttemptRepository.deleteByTestId(testId);
+            }
+
             questionRepository.deleteByTestId(testId);
 
             for (int i = 0; i < request.questions().size(); i++) {

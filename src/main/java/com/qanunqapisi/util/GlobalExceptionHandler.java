@@ -115,10 +115,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
         String message = ex.getMostSpecificCause().getMessage();
-        if (message.contains("duplicate key") || message.contains("unique constraint")) {
+        if ((message.contains("duplicate key") || message.contains("unique constraint"))
+                && message.contains("users")) {
             return buildErrorResponse(HttpStatus.CONFLICT, ErrorMessages.EMAIL_IN_USE);
         }
-        return buildErrorResponse(HttpStatus.CONFLICT, message);
+        return buildErrorResponse(HttpStatus.CONFLICT, "Data integrity violation");
     }
 
     @ExceptionHandler(IllegalStateException.class)
