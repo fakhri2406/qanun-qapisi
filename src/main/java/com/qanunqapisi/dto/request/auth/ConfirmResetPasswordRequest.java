@@ -10,10 +10,11 @@ public record ConfirmResetPasswordRequest(
     String email,
 
     @NotBlank(message = "Reset token is required")
+    @Size(max = 255, message = "Reset token must not exceed 255 characters")
     String token,
 
     @NotBlank(message = "New password is required")
-    @Size(min = 8, message = "Password must be at least 8 characters")
+    @Size(min = 8, max = 128, message = "Password must be between 8 and 128 characters")
     String newPassword
 ) {
 }

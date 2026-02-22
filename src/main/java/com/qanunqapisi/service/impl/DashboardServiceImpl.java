@@ -7,6 +7,7 @@ import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +17,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final TestAttemptRepository testAttemptRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public DashboardStatsResponse getStats() {
         long totalTests = testRepository.count();
         long draftTests = testRepository.countByStatus("DRAFT");

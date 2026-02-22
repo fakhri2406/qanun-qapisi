@@ -28,7 +28,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         if (counter.increment() > MAX_REQUESTS_PER_MINUTE) {
             response.setStatus(429);
-            response.getWriter().write("Too many requests. Please try again later.");
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"status\":429,\"error\":\"TOO_MANY_REQUESTS\",\"message\":\"Too many requests. Please try again later.\"}");
             return;
         }
 

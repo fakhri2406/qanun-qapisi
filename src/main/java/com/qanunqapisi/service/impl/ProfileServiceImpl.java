@@ -155,6 +155,10 @@ public class ProfileServiceImpl implements ProfileService {
             user.getPendingEmailLockedUntil().isAfter(LocalDateTime.now())) {
             throw new IllegalStateException(EMAIL_CHANGE_LOCKED);
         }
+        else if (user.getPendingEmailLockedUntil() != null) {
+            user.setPendingEmailAttempts(0);
+            user.setPendingEmailLockedUntil(null);
+        }
 
         if (user.getPendingEmailExpiresAt() == null ||
             user.getPendingEmailExpiresAt().isBefore(LocalDateTime.now())) {
@@ -189,10 +193,9 @@ public class ProfileServiceImpl implements ProfileService {
 
         UUID userId = user.getId();
 
-        List<TestAttempt> testAttempts = testAttemptRepository.findByUserId(userId);
-        List<UUID> testAttemptIds = testAttempts.stream()
+        List<UUID> testAttemptIds = testAttemptRepository.findByUserId(userId).stream()
             .map(TestAttempt::getId)
-            .collect(Collectors.toList());
+            .toList();
 
         if (!testAttemptIds.isEmpty()) {
             userAnswerRepository.deleteByTestAttemptIdIn(testAttemptIds);

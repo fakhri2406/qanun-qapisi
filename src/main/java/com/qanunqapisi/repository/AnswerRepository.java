@@ -13,8 +13,6 @@ import java.util.UUID;
 public interface AnswerRepository extends JpaRepository<Answer, UUID> {
     List<Answer> findByQuestionIdOrderByOrderIndex(UUID questionId);
 
-    void deleteByQuestionId(UUID questionId);
-
     List<Answer> findByQuestionIdAndIsCorrect(UUID questionId, Boolean isCorrect);
 
     @Query("SELECT a FROM Answer a WHERE a.questionId IN :questionIds ORDER BY a.questionId, a.orderIndex")

@@ -1,0 +1,90 @@
+spring:
+  application:
+    name: qanun-qapisi
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        format_sql: true
+  flyway:
+    enabled: true
+    validate-on-migrate: false
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+  mail:
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT}
+    username: ${SMTP_USERNAME}
+    password: ${SMTP_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: ${PORT:8080}
+  address: 0.0.0.0
+  error:
+    include-stacktrace: never
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.qanunqapisi: INFO
+    org.springframework.mail: WARN
+  file:
+    path: log/
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    mail:
+      enabled: false
+
+jwt:
+  issuer: ${JWT_ISSUER}
+  audience: ${JWT_AUDIENCE}
+  secret: ${JWT_SECRET}
+  access-token-validity-seconds: ${JWT_ACCESS_VALIDITY}
+  refresh-token-validity-seconds: ${JWT_REFRESH_VALIDITY}
+
+mail:
+  from: ${MAIL_FROM}
+
+app:
+  base-url: ${APP_BASE_URL}
+  openapi:
+    server-url: ${app.base-url}/api/v1
+  default-admin:
+    email: ${ADMIN_EMAIL}
+    password: ${ADMIN_PASSWORD}
+    first-name: ${ADMIN_FIRST_NAME}
+    last-name: ${ADMIN_LAST_NAME}
+  device-bypass-email: ${DEVICE_BYPASS_EMAIL}

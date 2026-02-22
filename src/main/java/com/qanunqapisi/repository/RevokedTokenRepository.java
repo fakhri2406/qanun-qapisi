@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.qanunqapisi.domain.RevokedToken;
 
@@ -17,5 +18,6 @@ public interface RevokedTokenRepository extends JpaRepository<RevokedToken, UUID
     void deleteByExpiresAtBefore(LocalDateTime dateTime);
 
     @Modifying
+    @Transactional
     void deleteByUserId(UUID userId);
 }

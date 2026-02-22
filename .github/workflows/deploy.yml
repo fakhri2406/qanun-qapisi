@@ -6,7 +6,6 @@ on:
     paths-ignore:
       - '**/README.md'
       - 'README.md'
-      - 'API_DOCUMENTATION.md'
       - 'docs/**'
       - '**/*.md'
       - '**/*.mdx'
@@ -15,7 +14,6 @@ on:
     paths-ignore:
       - '**/README.md'
       - 'README.md'
-      - 'API_DOCUMENTATION.md'
       - 'docs/**'
       - '**/*.md'
       - '**/*.mdx'

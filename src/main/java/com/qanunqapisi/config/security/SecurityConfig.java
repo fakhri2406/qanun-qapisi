@@ -4,6 +4,7 @@ import com.qanunqapisi.config.jwt.JwtAuthenticationFilter;
 import com.qanunqapisi.config.jwt.RestAccessDeniedHandler;
 import com.qanunqapisi.config.jwt.RestAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -45,9 +46,10 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/v3/api-docs/**",
                     "/swagger-ui.html",
-                    "/swagger-ui/**",
-                    "/actuator/**"
+                    "/swagger-ui/**"
                 ).permitAll()
+                .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                .requestMatchers("/actuator/**").hasRole("ADMIN")
                 .requestMatchers(
                     HttpMethod.POST,
                     "/api/v1/auth/signup",

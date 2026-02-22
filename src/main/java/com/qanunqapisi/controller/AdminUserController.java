@@ -25,6 +25,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -35,6 +36,9 @@ import java.util.UUID;
 @Tag(name = "Admin: Users", description = "Admin endpoints for user management")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminUserController {
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+        "createdAt", "email", "firstName", "lastName", "lastLoginAt");
+
     private final AdminUserService adminUserService;
 
     @GetMapping
@@ -54,6 +58,9 @@ public class AdminUserController {
         @Parameter(description = "Sort field") @RequestParam(defaultValue = "createdAt") String sortBy,
         @Parameter(description = "Sort direction (ASC/DESC)") @RequestParam(defaultValue = "DESC") String sortDir) {
 
+        if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
+            sortBy = "createdAt";
+        }
         Sort sort = sortDir.equalsIgnoreCase("ASC") ?
             Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), sort);

@@ -14,17 +14,17 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class LoggingAspect {
     @Pointcut("within(com.qanunqapisi.service..*)")
-    public void serviceLayer() {
+    private void serviceLayer() {
     }
 
     @Pointcut("within(com.qanunqapisi.controller..*)")
-    public void controllerLayer() {
+    private void controllerLayer() {
     }
 
     @Around("serviceLayer() && execution(* com.qanunqapisi.service.AdminUserService.*(..))")
     public Object logAdminUserOperations(ProceedingJoinPoint joinPoint) throws Throwable {
         String methodName = joinPoint.getSignature().getName();
-        log.info("Admin operation: {} - Args: {}", methodName, joinPoint.getArgs());
+        log.info("Admin operation: {} - ArgCount: {}", methodName, joinPoint.getArgs().length);
 
         try {
             Object result = joinPoint.proceed();
@@ -49,6 +49,6 @@ public class LoggingAspect {
         log.error("Exception in {}.{}() with cause = {}",
             joinPoint.getSignature().getDeclaringTypeName(),
             joinPoint.getSignature().getName(),
-            ex.getCause() != null ? ex.getCause() : "NULL");
+            ex.getMessage(), ex);
     }
 }

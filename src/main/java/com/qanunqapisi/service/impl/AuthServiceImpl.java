@@ -139,6 +139,10 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(request.email())
             .orElseThrow(() -> new NoSuchElementException(USER_NOT_FOUND));
 
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new BadCredentialsException(INVALID_CREDENTIALS);
+        }
+
         if (Boolean.TRUE.equals(user.getIsVerified())) {
             return createAuthResponse(user);
         }
@@ -172,11 +176,16 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void resend(@Valid ResendVerificationRequest request) {
-        User user = userRepository.findByEmail(request.email())
-            .orElseThrow(() -> new NoSuchElementException(USER_NOT_FOUND));
+        var optionalUser = userRepository.findByEmail(request.email());
+        if (optionalUser.isEmpty()) {
+            log.debug("Resend verification requested for non-existent email");
+            return;
+        }
+
+        User user = optionalUser.get();
 
         if (Boolean.TRUE.equals(user.getIsVerified())) {
-            throw new IllegalStateException("Account already verified");
+            return;
         }
 
         if (user.getVerificationLastSentAt() != null &&
@@ -213,6 +222,10 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(request.email())
             .orElseThrow(() -> new BadCredentialsException(INVALID_CREDENTIALS));
 
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new BadCredentialsException(INVALID_CREDENTIALS);
+        }
+
         if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
             throw new IllegalStateException(ACCOUNT_LOCKED);
         }
@@ -229,7 +242,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (!Boolean.TRUE.equals(user.getIsVerified())) {
-            throw new IllegalStateException(ACCOUNT_NOT_VERIFIED);
+            throw new BadCredentialsException(INVALID_CREDENTIALS);
         }
 
         if (!isDeviceCheckBypassed(user)) {
@@ -262,7 +275,15 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findById(refreshToken.getUserId())
             .orElseThrow(() -> new NoSuchElementException(USER_NOT_FOUND));
 
-        String accessToken = tokenGenerator.generateAccessToken(user);
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            refreshTokenRepository.delete(refreshToken);
+            throw new BadCredentialsException(INVALID_CREDENTIALS);
+        }
+
+        Role role = roleRepository.findById(user.getRoleId())
+            .orElseThrow(() -> new NoSuchElementException(ROLE_NOT_FOUND));
+
+        String accessToken = tokenGenerator.generateAccessToken(user, role.getTitle());
         return new AuthResponse(accessToken, refreshToken.getToken());
     }
 
@@ -327,12 +348,17 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void resetPassword(@Valid ResetPasswordRequest request) {
-        User user = userRepository.findByEmail(request.email())
-            .orElseThrow(() -> new NoSuchElementException(USER_NOT_FOUND));
+        var optionalUser = userRepository.findByEmail(request.email());
+        if (optionalUser.isEmpty()) {
+            log.debug("Password reset requested for non-existent email");
+            return;
+        }
+
+        User user = optionalUser.get();
 
         if (user.getPasswordResetLockedUntil() != null &&
             user.getPasswordResetLockedUntil().isAfter(LocalDateTime.now())) {
-            throw new IllegalStateException(PASSWORD_RESET_LOCKED);
+            return;
         }
 
         String token = tokenGenerator.generateUUID();
@@ -353,7 +379,6 @@ public class AuthServiceImpl implements AuthService {
             emailService.sendEmail(emailProperties.getFrom(), user.getEmail(), subject, body, true);
         } catch (RuntimeException ex) {
             log.error("Failed to send password reset email", ex);
-            throw new EmailSendException(FAILED_TO_SEND_EMAIL, ex);
         }
     }
 
@@ -362,6 +387,11 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(request.email())
             .orElseThrow(() -> new NoSuchElementException(USER_NOT_FOUND));
 
+        if (user.getPasswordResetExpiresAt() == null ||
+            user.getPasswordResetExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException(PASSWORD_RESET_EXPIRED);
+        }
+
         if (user.getPasswordResetToken() == null || !user.getPasswordResetToken().equals(request.token())) {
             user.setPasswordResetAttempts(user.getPasswordResetAttempts() + 1);
             if (user.getPasswordResetAttempts() >= RESET_MAX_ATTEMPTS) {
@@ -369,11 +399,6 @@ public class AuthServiceImpl implements AuthService {
             }
             userRepository.save(user);
             throw new IllegalArgumentException(PASSWORD_RESET_INVALID);
-        }
-
-        if (user.getPasswordResetExpiresAt() == null ||
-            user.getPasswordResetExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException(PASSWORD_RESET_EXPIRED);
         }
 
         String passwordHash = hasher.hash(request.newPassword());
@@ -397,7 +422,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private AuthResponse createAuthResponse(User user) {
-        String accessToken = tokenGenerator.generateAccessToken(user);
+        Role role = roleRepository.findById(user.getRoleId())
+            .orElseThrow(() -> new NoSuchElementException(ROLE_NOT_FOUND));
+        String accessToken = tokenGenerator.generateAccessToken(user, role.getTitle());
         String refreshToken = generateRefreshToken(user);
         return new AuthResponse(accessToken, refreshToken);
     }

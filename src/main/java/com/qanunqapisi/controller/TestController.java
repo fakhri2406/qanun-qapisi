@@ -1,6 +1,7 @@
 package com.qanunqapisi.controller;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -45,6 +46,9 @@ import lombok.RequiredArgsConstructor;
 @Tag(name = "Tests (Customer)", description = "Test and attempt management endpoints for customers")
 @SecurityRequirement(name = "bearerAuth")
 public class TestController {
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+        "publishedAt", "createdAt", "updatedAt", "title", "questionCount");
+
     private final TestService testService;
     private final TestAttemptService testAttemptService;
 
@@ -60,6 +64,9 @@ public class TestController {
         @Parameter(description = "Sort field") @RequestParam(defaultValue = "publishedAt") String sortBy,
         @Parameter(description = "Sort direction (ASC/DESC)") @RequestParam(defaultValue = "DESC") String sortDir) {
 
+        if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
+            sortBy = "publishedAt";
+        }
         Sort sort = sortDir.equalsIgnoreCase("ASC") ?
             Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), sort);

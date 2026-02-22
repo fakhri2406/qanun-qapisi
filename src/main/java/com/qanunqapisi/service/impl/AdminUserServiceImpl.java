@@ -5,7 +5,11 @@ import com.qanunqapisi.domain.User;
 import com.qanunqapisi.dto.request.admin.CreateUserRequest;
 import com.qanunqapisi.dto.request.admin.UpdateUserRequest;
 import com.qanunqapisi.dto.response.admin.AdminUserResponse;
+import com.qanunqapisi.repository.RefreshTokenRepository;
+import com.qanunqapisi.repository.RevokedTokenRepository;
 import com.qanunqapisi.repository.RoleRepository;
+import com.qanunqapisi.repository.TestAttemptRepository;
+import com.qanunqapisi.repository.UserAnswerRepository;
 import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.service.AdminUserService;
 import com.qanunqapisi.util.Hasher;
@@ -21,6 +25,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -33,6 +38,10 @@ import static com.qanunqapisi.util.ErrorMessages.*;
 public class AdminUserServiceImpl implements AdminUserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final RevokedTokenRepository revokedTokenRepository;
+    private final TestAttemptRepository testAttemptRepository;
+    private final UserAnswerRepository userAnswerRepository;
     private final Hasher hasher;
 
     @Override
@@ -57,11 +66,15 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         if (search != null && !search.isEmpty()) {
-            String searchLower = search.toLowerCase();
+            String escaped = search.toLowerCase()
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+            String pattern = "%" + escaped + "%";
             spec = spec.and((root, query, cb) -> cb.or(
-                cb.like(cb.lower(root.get("email")), "%" + searchLower + "%"),
-                cb.like(cb.lower(root.get("firstName")), "%" + searchLower + "%"),
-                cb.like(cb.lower(root.get("lastName")), "%" + searchLower + "%")
+                cb.like(cb.lower(root.get("email")), pattern, '\\'),
+                cb.like(cb.lower(root.get("firstName")), pattern, '\\'),
+                cb.like(cb.lower(root.get("lastName")), pattern, '\\')
             ));
         }
 
@@ -158,7 +171,17 @@ public class AdminUserServiceImpl implements AdminUserService {
         User userToDelete = userRepository.findById(userId)
             .orElseThrow(() -> new NoSuchElementException(USER_NOT_FOUND));
 
+        List<UUID> attemptIds = testAttemptRepository.findByUserId(userId)
+            .stream().map(com.qanunqapisi.domain.TestAttempt::getId).toList();
+        if (!attemptIds.isEmpty()) {
+            userAnswerRepository.deleteByTestAttemptIdIn(attemptIds);
+        }
+        testAttemptRepository.deleteByUserId(userId);
+        refreshTokenRepository.deleteByUserId(userId);
+        revokedTokenRepository.deleteByUserId(userId);
+
         userRepository.delete(userToDelete);
+        log.info("Admin deleted user: {}", userToDelete.getEmail());
     }
 
     private AdminUserResponse toAdminUserResponse(User user) {

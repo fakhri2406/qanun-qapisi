@@ -13,7 +13,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
-import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +26,7 @@ public class CustomUserDetailsService implements UserDetailsService {
             .orElseThrow(() -> new UsernameNotFoundException(ErrorMessages.USER_NOT_FOUND));
 
         Role role = roleRepository.findById(user.getRoleId())
-            .orElseThrow(() -> new NoSuchElementException(ErrorMessages.ROLE_NOT_FOUND));
+            .orElseThrow(() -> new UsernameNotFoundException(ErrorMessages.ROLE_NOT_FOUND));
 
         return new org.springframework.security.core.userdetails.User(
             user.getEmail(),

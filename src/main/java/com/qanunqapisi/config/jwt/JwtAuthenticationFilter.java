@@ -1,17 +1,19 @@
 package com.qanunqapisi.config.jwt;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.qanunqapisi.dto.response.error.ErrorResponse;
 import com.qanunqapisi.repository.RevokedTokenRepository;
 import com.qanunqapisi.util.ErrorMessages;
+import com.qanunqapisi.util.TokenGenerator;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,9 +22,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.crypto.SecretKey;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
@@ -31,6 +32,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtProperties jwtProperties;
     private final UserDetailsService userDetailsService;
     private final RevokedTokenRepository revokedTokenRepository;
+    private final TokenGenerator tokenGenerator;
+    private final ObjectMapper objectMapper;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -38,25 +41,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String header = request.getHeader("Authorization");
 
-        if (header != null && header.toLowerCase().startsWith("bearer ")) {
-            String token = header.substring(header.indexOf(' ') + 1);
+        if (header != null && header.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            String token = header.substring(7);
 
             if (revokedTokenRepository.findByToken(token).isPresent()) {
-                throw new AuthenticationServiceException(ErrorMessages.ACCESS_TOKEN_REVOKED);
+                writeErrorResponse(response, HttpStatus.UNAUTHORIZED, ErrorMessages.ACCESS_TOKEN_REVOKED);
+                return;
             }
 
-            SecretKey secretKey = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
             Claims claims;
             try {
                 claims = Jwts.parserBuilder()
-                    .setSigningKey(secretKey)
+                    .setSigningKey(tokenGenerator.getSigningKey())
                     .requireIssuer(jwtProperties.getIssuer())
                     .requireAudience(jwtProperties.getAudience())
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
             } catch (JwtException e) {
-                throw new AuthenticationServiceException(ErrorMessages.INVALID_ACCESS_TOKEN);
+                SecurityContextHolder.clearContext();
+                writeErrorResponse(response, HttpStatus.UNAUTHORIZED, ErrorMessages.INVALID_ACCESS_TOKEN);
+                return;
             }
 
             String username = claims.getSubject();
@@ -82,5 +87,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void writeErrorResponse(HttpServletResponse response, HttpStatus status, String message) throws IOException {
+        SecurityContextHolder.clearContext();
+        ErrorResponse errorResponse = ErrorResponse.builder()
+            .timestamp(LocalDateTime.now())
+            .status(status.value())
+            .error(status.name())
+            .message(message)
+            .build();
+        response.setStatus(status.value());
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
     }
 }

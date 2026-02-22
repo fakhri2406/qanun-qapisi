@@ -65,6 +65,7 @@ public final class ErrorMessages {
     // Test Taking
     public static final String ATTEMPT_ALREADY_COMPLETED = "Test attempt already completed";
     public static final String ATTEMPT_NOT_IN_PROGRESS = "Test attempt is not in progress";
+    public static final String ATTEMPT_NOT_COMPLETED = "Test attempt is not yet completed";
     public static final String ANSWER_MISMATCH = "Answer does not belong to this test";
 
     // Image Upload

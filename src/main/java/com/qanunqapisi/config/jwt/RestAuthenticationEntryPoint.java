@@ -1,12 +1,12 @@
 package com.qanunqapisi.config.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.qanunqapisi.dto.response.error.ErrorResponse;
 import com.qanunqapisi.util.ErrorMessages;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -16,13 +16,9 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 
 @Component
+@RequiredArgsConstructor
 public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
     private final ObjectMapper objectMapper;
-
-    public RestAuthenticationEntryPoint() {
-        this.objectMapper = new ObjectMapper();
-        this.objectMapper.registerModule(new JavaTimeModule());
-    }
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
@@ -35,7 +31,7 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
             .build();
 
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        response.setContentType("application/json");
+        response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
     }
 }

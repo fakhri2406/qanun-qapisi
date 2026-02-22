@@ -1,5 +1,6 @@
 package com.qanunqapisi.controller;
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -48,6 +49,11 @@ import lombok.RequiredArgsConstructor;
 @Tag(name = "Admin: Tests", description = "Admin endpoints for test management")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminTestController {
+    private static final Set<String> ALLOWED_TEST_SORT_FIELDS = Set.of(
+        "createdAt", "updatedAt", "publishedAt", "title", "questionCount", "status");
+    private static final Set<String> ALLOWED_RESULTS_SORT_FIELDS = Set.of(
+        "submittedAt", "score", "percentage");
+
     private final TestService testService;
     private final TestAttemptService testAttemptService;
 
@@ -119,6 +125,9 @@ public class AdminTestController {
         @Parameter(description = "Sort field") @RequestParam(defaultValue = "createdAt") String sortBy,
         @Parameter(description = "Sort direction (ASC/DESC)") @RequestParam(defaultValue = "DESC") String sortDir) {
 
+        if (!ALLOWED_TEST_SORT_FIELDS.contains(sortBy)) {
+            sortBy = "createdAt";
+        }
         Sort sort = sortDir.equalsIgnoreCase("ASC") ?
             Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), sort);
@@ -156,6 +165,9 @@ public class AdminTestController {
         @Parameter(description = "Sort field") @RequestParam(defaultValue = "submittedAt") String sortBy,
         @Parameter(description = "Sort direction (ASC/DESC)") @RequestParam(defaultValue = "DESC") String sortDir) {
 
+        if (!ALLOWED_RESULTS_SORT_FIELDS.contains(sortBy)) {
+            sortBy = "submittedAt";
+        }
         Sort sort = sortDir.equalsIgnoreCase("ASC") ?
             Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), sort);

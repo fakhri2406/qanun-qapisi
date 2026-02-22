@@ -19,4 +19,7 @@ public interface QuestionRepository extends JpaRepository<Question, UUID> {
     void deleteByTestId(@Param("testId") UUID testId);
 
     long countByTestId(UUID testId);
+
+    @Query("SELECT q.testId, q.questionType, COUNT(q) FROM Question q WHERE q.testId IN :testIds GROUP BY q.testId, q.questionType")
+    List<Object[]> countByTestIdInGroupByType(@Param("testIds") List<UUID> testIds);
 }

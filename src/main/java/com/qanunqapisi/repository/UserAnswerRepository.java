@@ -12,7 +12,8 @@ import java.util.UUID;
 public interface UserAnswerRepository extends JpaRepository<UserAnswer, UUID> {
     List<UserAnswer> findByTestAttemptId(UUID testAttemptId);
 
-    boolean existsByQuestionId(UUID questionId);
+    @Modifying
+    void deleteByTestAttemptId(UUID testAttemptId);
 
     @Modifying
     void deleteByTestAttemptIdIn(List<UUID> testAttemptIds);

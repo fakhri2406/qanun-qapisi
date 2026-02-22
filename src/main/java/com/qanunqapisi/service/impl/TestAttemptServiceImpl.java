@@ -38,8 +38,9 @@ import com.qanunqapisi.repository.TestRepository;
 import com.qanunqapisi.repository.UserAnswerRepository;
 import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.service.TestAttemptService;
+import static com.qanunqapisi.util.ErrorMessages.ATTEMPT_NOT_COMPLETED;
 import static com.qanunqapisi.util.ErrorMessages.ATTEMPT_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.ATTEMPT_NOT_IN_PROGRESS;
+import org.springframework.security.access.AccessDeniedException;
 import static com.qanunqapisi.util.ErrorMessages.CANNOT_START_PREMIUM_TEST;
 import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
 import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_FOUND;
@@ -83,7 +84,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
             .orElseThrow(() -> new NoSuchElementException(ROLE_NOT_FOUND));
 
         if (Boolean.TRUE.equals(test.getIsPremium()) && !Boolean.TRUE.equals(user.getIsPremium()) && !"ADMIN".equals(role.getTitle())) {
-            throw new IllegalStateException(CANNOT_START_PREMIUM_TEST);
+            throw new AccessDeniedException(CANNOT_START_PREMIUM_TEST);
         }
 
         List<TestAttempt> existingAttempts = testAttemptRepository
@@ -155,6 +156,8 @@ public class TestAttemptServiceImpl implements TestAttemptService {
         Map<UUID, SubmitAnswerRequest> answerMap = request.answers().stream()
             .collect(Collectors.toMap(SubmitAnswerRequest::questionId, a -> a));
 
+        userAnswerRepository.deleteByTestAttemptId(attempt.getId());
+
         List<QuestionResultResponse> questionResults = new ArrayList<>();
         int totalScore = 0;
 
@@ -211,11 +214,22 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     @Override
     @Transactional(readOnly = true)
     public TestResultResponse getAttemptResults(UUID attemptId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = userRepository.findByEmail(auth.getName())
+            .orElseThrow(() -> new NoSuchElementException(USER_NOT_FOUND));
+
         TestAttempt attempt = testAttemptRepository.findById(attemptId)
             .orElseThrow(() -> new NoSuchElementException(ATTEMPT_NOT_FOUND));
 
+        Role role = roleRepository.findById(currentUser.getRoleId())
+            .orElseThrow(() -> new NoSuchElementException(ROLE_NOT_FOUND));
+
+        if (!attempt.getUserId().equals(currentUser.getId()) && !"ADMIN".equals(role.getTitle())) {
+            throw new NoSuchElementException(ATTEMPT_NOT_FOUND);
+        }
+
         if (!COMPLETED.equals(attempt.getStatus())) {
-            throw new IllegalStateException(ATTEMPT_NOT_IN_PROGRESS);
+            throw new IllegalStateException(ATTEMPT_NOT_COMPLETED);
         }
 
         Test test = testRepository.findById(attempt.getTestId())
@@ -304,11 +318,11 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     }
 
     private boolean evaluateOpenText(Question question, String openTextAnswer) {
-        if (openTextAnswer == null) {
+        if (openTextAnswer == null || question.getCorrectAnswer() == null) {
             return false;
         }
         String normalized = normalizeText(openTextAnswer);
-        return normalized.equals(question.getCorrectAnswer());
+        return normalized != null && normalized.equals(question.getCorrectAnswer());
     }
 
     private QuestionResultResponse buildQuestionResult(Question question, UserAnswer userAnswer) {
@@ -382,7 +396,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
     }
 
     private String normalizeText(String text) {
-        if (text == null) return "";
+        if (text == null) return null;
         return text.toLowerCase().trim();
     }
 

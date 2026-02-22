@@ -39,6 +39,7 @@ import com.qanunqapisi.repository.TestRepository;
 import com.qanunqapisi.repository.UserAnswerRepository;
 import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.service.TestService;
+import org.springframework.security.access.AccessDeniedException;
 import static com.qanunqapisi.util.ErrorMessages.CANNOT_START_PREMIUM_TEST;
 import static com.qanunqapisi.util.ErrorMessages.CLOSED_MULTIPLE_AT_LEAST_ONE;
 import static com.qanunqapisi.util.ErrorMessages.CLOSED_MULTIPLE_MUST_HAVE_ANSWER;
@@ -157,6 +158,7 @@ public class TestServiceImpl implements TestService {
         }
 
         testAttemptRepository.deleteByTestId(testId);
+        questionRepository.deleteByTestId(testId);
 
         testRepository.delete(test);
     }
@@ -178,9 +180,13 @@ public class TestServiceImpl implements TestService {
 
         validateTestIntegrity(test, questions);
 
-        test.setStatus(PUBLISHED);
-        test.setPublishedAt(LocalDateTime.now());
-        testRepository.save(test);
+        recalculateTestScores(testId);
+
+        Test refreshedTest = testRepository.findById(testId)
+            .orElseThrow(() -> new NoSuchElementException(TEST_NOT_FOUND));
+        refreshedTest.setStatus(PUBLISHED);
+        refreshedTest.setPublishedAt(LocalDateTime.now());
+        testRepository.save(refreshedTest);
 
         return getTest(testId);
     }
@@ -213,9 +219,8 @@ public class TestServiceImpl implements TestService {
         }
 
         if (test.getQuestionCount() != questions.size()) {
-            log.warn("Test {} has incorrect question count. Expected {}, found {}. Recalculating...",
+            log.warn("Test {} has incorrect question count. Expected {}, found {}. Will recalculate.",
                 test.getId(), questions.size(), test.getQuestionCount());
-            recalculateTestScores(test.getId());
         }
 
         if (test.getTitle() == null || test.getTitle().isBlank()) {
@@ -343,9 +348,11 @@ public class TestServiceImpl implements TestService {
             tests = testRepository.findAll(pageable);
         }
 
+        List<UUID> testIds = tests.getContent().stream().map(Test::getId).toList();
+        Map<UUID, List<QuestionTypeCount>> typeCountsByTestId = loadQuestionTypeCountsBatch(testIds);
+
         return tests.map(test -> {
-            List<Question> questions = questionRepository.findByTestIdOrderByOrderIndex(test.getId());
-            List<QuestionTypeCount> questionTypeCounts = calculateQuestionTypeCounts(questions);
+            List<QuestionTypeCount> questionTypeCounts = typeCountsByTestId.getOrDefault(test.getId(), List.of());
 
             return new TestResponse(
                 test.getId(),
@@ -481,7 +488,7 @@ public class TestServiceImpl implements TestService {
         TestDetailResponse test = getTest(testId);
 
         if (Boolean.TRUE.equals(test.isPremium()) && !Boolean.TRUE.equals(user.getIsPremium()) && !"ADMIN".equals(role.getTitle())) {
-            throw new IllegalStateException(CANNOT_START_PREMIUM_TEST);
+            throw new AccessDeniedException(CANNOT_START_PREMIUM_TEST);
         }
 
         return test;
@@ -501,6 +508,20 @@ public class TestServiceImpl implements TestService {
         int overhead = questionCount >= 5 ? 5 : 0;
 
         return baseTime + overhead;
+    }
+
+    private Map<UUID, List<QuestionTypeCount>> loadQuestionTypeCountsBatch(List<UUID> testIds) {
+        if (testIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Object[]> rows = questionRepository.countByTestIdInGroupByType(testIds);
+        return rows.stream().collect(Collectors.groupingBy(
+            row -> (UUID) row[0],
+            Collectors.mapping(
+                row -> new QuestionTypeCount((String) row[1], ((Long) row[2]).intValue()),
+                Collectors.toList()
+            )
+        ));
     }
 
     private List<QuestionTypeCount> calculateQuestionTypeCounts(List<Question> questions) {

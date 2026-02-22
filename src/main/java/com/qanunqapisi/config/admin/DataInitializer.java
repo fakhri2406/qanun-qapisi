@@ -9,13 +9,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
+@EnableConfigurationProperties(AdminProperties.class)
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements ApplicationRunner {
@@ -56,7 +57,6 @@ public class DataInitializer implements ApplicationRunner {
                 .verificationAttempts(0)
                 .pendingEmailAttempts(0)
                 .passwordResetAttempts(0)
-                .lastLoginAt(LocalDateTime.now())
                 .build();
 
             userRepository.save(admin);
