@@ -4,7 +4,6 @@ import com.qanunqapisi.config.jwt.JwtAuthenticationFilter;
 import com.qanunqapisi.config.jwt.RestAccessDeniedHandler;
 import com.qanunqapisi.config.jwt.RestAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;

@@ -1,18 +1,5 @@
 package com.qanunqapisi.service.impl;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.qanunqapisi.config.email.EmailProperties;
 import com.qanunqapisi.domain.Role;
 import com.qanunqapisi.domain.TestAttempt;
@@ -23,32 +10,28 @@ import com.qanunqapisi.dto.request.profile.UpdateProfileRequest;
 import com.qanunqapisi.dto.request.profile.VerifyEmailChangeRequest;
 import com.qanunqapisi.dto.response.profile.ProfileResponse;
 import com.qanunqapisi.exception.EmailSendException;
-import com.qanunqapisi.repository.RefreshTokenRepository;
-import com.qanunqapisi.repository.RevokedTokenRepository;
-import com.qanunqapisi.repository.RoleRepository;
-import com.qanunqapisi.repository.TestAttemptRepository;
-import com.qanunqapisi.repository.UserAnswerRepository;
-import com.qanunqapisi.repository.UserRepository;
+import com.qanunqapisi.repository.*;
 import com.qanunqapisi.service.ProfileService;
 import com.qanunqapisi.service.external.email.EmailService;
 import com.qanunqapisi.service.external.email.EmailTemplateService;
-import static com.qanunqapisi.util.ErrorMessages.EMAIL_CHANGE_EXPIRED;
-import static com.qanunqapisi.util.ErrorMessages.EMAIL_CHANGE_INVALID;
-import static com.qanunqapisi.util.ErrorMessages.EMAIL_CHANGE_LOCKED;
-import static com.qanunqapisi.util.ErrorMessages.EMAIL_CHANGE_MISMATCH;
-import static com.qanunqapisi.util.ErrorMessages.EMAIL_IN_USE;
-import static com.qanunqapisi.util.ErrorMessages.FAILED_TO_SEND_EMAIL;
-import static com.qanunqapisi.util.ErrorMessages.INVALID_CURRENT_PASSWORD;
-import static com.qanunqapisi.util.ErrorMessages.NEW_EMAIL_SAME;
-import static com.qanunqapisi.util.ErrorMessages.NOT_AUTHENTICATED;
-import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.USER_NOT_FOUND;
 import com.qanunqapisi.util.Hasher;
 import com.qanunqapisi.util.TokenGenerator;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.UUID;
+
+import static com.qanunqapisi.util.ErrorMessages.*;
 
 @Service
 @Transactional
@@ -154,8 +137,7 @@ public class ProfileServiceImpl implements ProfileService {
         if (user.getPendingEmailLockedUntil() != null &&
             user.getPendingEmailLockedUntil().isAfter(LocalDateTime.now())) {
             throw new IllegalStateException(EMAIL_CHANGE_LOCKED);
-        }
-        else if (user.getPendingEmailLockedUntil() != null) {
+        } else if (user.getPendingEmailLockedUntil() != null) {
             user.setPendingEmailAttempts(0);
             user.setPendingEmailLockedUntil(null);
         }

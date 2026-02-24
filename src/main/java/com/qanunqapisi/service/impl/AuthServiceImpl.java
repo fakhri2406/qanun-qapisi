@@ -1,30 +1,12 @@
 package com.qanunqapisi.service.impl;
 
-import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.NoSuchElementException;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.qanunqapisi.config.email.EmailProperties;
 import com.qanunqapisi.config.jwt.JwtProperties;
 import com.qanunqapisi.domain.RefreshToken;
 import com.qanunqapisi.domain.RevokedToken;
 import com.qanunqapisi.domain.Role;
 import com.qanunqapisi.domain.User;
-import com.qanunqapisi.dto.request.auth.ConfirmResetPasswordRequest;
-import com.qanunqapisi.dto.request.auth.LoginRequest;
-import com.qanunqapisi.dto.request.auth.RefreshTokenRequest;
-import com.qanunqapisi.dto.request.auth.ResendVerificationRequest;
-import com.qanunqapisi.dto.request.auth.ResetPasswordRequest;
-import com.qanunqapisi.dto.request.auth.SignupRequest;
-import com.qanunqapisi.dto.request.auth.VerifyRequest;
+import com.qanunqapisi.dto.request.auth.*;
 import com.qanunqapisi.dto.response.auth.AuthResponse;
 import com.qanunqapisi.dto.response.auth.MeResponse;
 import com.qanunqapisi.exception.EmailSendException;
@@ -35,29 +17,24 @@ import com.qanunqapisi.repository.UserRepository;
 import com.qanunqapisi.service.AuthService;
 import com.qanunqapisi.service.external.email.EmailService;
 import com.qanunqapisi.service.external.email.EmailTemplateService;
-import static com.qanunqapisi.util.ErrorMessages.ACCOUNT_LOCKED;
-import static com.qanunqapisi.util.ErrorMessages.ACCOUNT_NOT_VERIFIED;
-import static com.qanunqapisi.util.ErrorMessages.EMAIL_IN_USE;
-import static com.qanunqapisi.util.ErrorMessages.FAILED_TO_SEND_EMAIL;
-import static com.qanunqapisi.util.ErrorMessages.INVALID_CREDENTIALS;
-import static com.qanunqapisi.util.ErrorMessages.INVALID_REFRESH_TOKEN;
-import static com.qanunqapisi.util.ErrorMessages.NOT_AUTHENTICATED;
-import static com.qanunqapisi.util.ErrorMessages.PASSWORD_RESET_EXPIRED;
-import static com.qanunqapisi.util.ErrorMessages.PASSWORD_RESET_INVALID;
-import static com.qanunqapisi.util.ErrorMessages.PASSWORD_RESET_LOCKED;
-import static com.qanunqapisi.util.ErrorMessages.REFRESH_TOKEN_EXPIRED;
-import static com.qanunqapisi.util.ErrorMessages.RESEND_COOLDOWN;
-import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.USER_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.VERIFICATION_EXPIRED;
-import static com.qanunqapisi.util.ErrorMessages.VERIFICATION_INVALID;
-import static com.qanunqapisi.util.ErrorMessages.VERIFICATION_LOCKED;
 import com.qanunqapisi.util.Hasher;
 import com.qanunqapisi.util.TokenGenerator;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.NoSuchElementException;
+
+import static com.qanunqapisi.util.ErrorMessages.*;
 
 @Service
 @Transactional
@@ -303,7 +280,7 @@ public class AuthServiceImpl implements AuthService {
                 revokedTokenRepository.save(revokedToken);
 
                 refreshTokenRepository.deleteByUserId(user.getId());
-                
+
                 if (!isDeviceCheckBypassed(user)) {
                     user.setDeviceId(null);
                 }
@@ -413,12 +390,12 @@ public class AuthServiceImpl implements AuthService {
 
     private boolean isDeviceCheckBypassed(User user) {
         if (deviceBypassEmail != null && !deviceBypassEmail.isEmpty()
-                && deviceBypassEmail.equalsIgnoreCase(user.getEmail())) {
+            && deviceBypassEmail.equalsIgnoreCase(user.getEmail())) {
             return true;
         }
         return roleRepository.findById(user.getRoleId())
-                .map(role -> "ADMIN".equals(role.getTitle()))
-                .orElse(false);
+            .map(role -> "ADMIN".equals(role.getTitle()))
+            .orElse(false);
     }
 
     private AuthResponse createAuthResponse(User user) {

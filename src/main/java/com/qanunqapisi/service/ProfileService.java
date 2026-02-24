@@ -60,7 +60,7 @@ public interface ProfileService {
      * This action is permanent and cannot be undone.
      *
      * @param password the user's current password for confirmation
-     * @throws NoSuchElementException if authenticated user not found
+     * @throws NoSuchElementException   if authenticated user not found
      * @throws IllegalArgumentException if password is incorrect
      */
     void deleteAccount(String password);

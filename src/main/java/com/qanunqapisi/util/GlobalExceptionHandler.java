@@ -3,6 +3,7 @@ package com.qanunqapisi.util;
 import com.qanunqapisi.dto.response.error.ErrorResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +20,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
-
-import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -119,7 +118,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
         String message = ex.getMostSpecificCause().getMessage();
         if ((message.contains("duplicate key") || message.contains("unique constraint"))
-                && message.contains("users")) {
+            && message.contains("users")) {
             return buildErrorResponse(HttpStatus.CONFLICT, ErrorMessages.EMAIL_IN_USE);
         }
         return buildErrorResponse(HttpStatus.CONFLICT, "Data integrity violation");

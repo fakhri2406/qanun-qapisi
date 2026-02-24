@@ -1,55 +1,30 @@
 package com.qanunqapisi.service.impl;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.qanunqapisi.domain.Answer;
-import com.qanunqapisi.domain.Question;
-import com.qanunqapisi.domain.Role;
-import com.qanunqapisi.domain.Test;
-import com.qanunqapisi.domain.TestAttempt;
-import com.qanunqapisi.domain.User;
-import com.qanunqapisi.domain.UserAnswer;
+import com.qanunqapisi.domain.*;
 import com.qanunqapisi.dto.request.test.SubmitAnswerRequest;
 import com.qanunqapisi.dto.request.test.SubmitTestRequest;
 import com.qanunqapisi.dto.response.test.AnswerResponse;
 import com.qanunqapisi.dto.response.test.QuestionResultResponse;
 import com.qanunqapisi.dto.response.test.TestAttemptResponse;
 import com.qanunqapisi.dto.response.test.TestResultResponse;
-import com.qanunqapisi.repository.AnswerRepository;
-import com.qanunqapisi.repository.QuestionRepository;
-import com.qanunqapisi.repository.RoleRepository;
-import com.qanunqapisi.repository.TestAttemptRepository;
-import com.qanunqapisi.repository.TestRepository;
-import com.qanunqapisi.repository.UserAnswerRepository;
-import com.qanunqapisi.repository.UserRepository;
+import com.qanunqapisi.repository.*;
 import com.qanunqapisi.service.TestAttemptService;
-import static com.qanunqapisi.util.ErrorMessages.ATTEMPT_NOT_COMPLETED;
-import static com.qanunqapisi.util.ErrorMessages.ATTEMPT_NOT_FOUND;
-import org.springframework.security.access.AccessDeniedException;
-import static com.qanunqapisi.util.ErrorMessages.CANNOT_START_PREMIUM_TEST;
-import static com.qanunqapisi.util.ErrorMessages.ROLE_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_FOUND;
-import static com.qanunqapisi.util.ErrorMessages.TEST_NOT_PUBLISHED;
-import static com.qanunqapisi.util.ErrorMessages.USER_NOT_FOUND;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.qanunqapisi.util.ErrorMessages.*;
 
 @Service
 @Transactional
@@ -89,11 +64,11 @@ public class TestAttemptServiceImpl implements TestAttemptService {
 
         List<TestAttempt> existingAttempts = testAttemptRepository
             .findByUserIdAndTestIdAndStatusOrderByStartedAtDesc(user.getId(), testId, IN_PROGRESS);
-        
+
         TestAttempt attempt;
         if (!existingAttempts.isEmpty()) {
             attempt = existingAttempts.get(0);
-            log.debug("Reusing existing IN_PROGRESS attempt {} for user {} and test {}", 
+            log.debug("Reusing existing IN_PROGRESS attempt {} for user {} and test {}",
                 attempt.getId(), user.getId(), testId);
         } else {
             attempt = TestAttempt.builder()
@@ -106,7 +81,7 @@ public class TestAttemptServiceImpl implements TestAttemptService {
                 .build();
 
             testAttemptRepository.save(attempt);
-            log.debug("Created new attempt {} for user {} and test {}", 
+            log.debug("Created new attempt {} for user {} and test {}",
                 attempt.getId(), user.getId(), testId);
         }
 
@@ -133,15 +108,15 @@ public class TestAttemptServiceImpl implements TestAttemptService {
 
         List<TestAttempt> inProgressAttempts = testAttemptRepository
             .findByUserIdAndTestIdAndStatusOrderByStartedAtDesc(user.getId(), testId, IN_PROGRESS);
-        
+
         if (inProgressAttempts.isEmpty()) {
             throw new NoSuchElementException(ATTEMPT_NOT_FOUND);
         }
-        
+
         TestAttempt attempt = inProgressAttempts.get(0);
-        
+
         if (inProgressAttempts.size() > 1) {
-            log.warn("Found {} duplicate IN_PROGRESS attempts for user {} and test {}. Completing extras.", 
+            log.warn("Found {} duplicate IN_PROGRESS attempts for user {} and test {}. Completing extras.",
                 inProgressAttempts.size(), user.getId(), testId);
             for (int i = 1; i < inProgressAttempts.size(); i++) {
                 TestAttempt extraAttempt = inProgressAttempts.get(i);
