@@ -1,13 +1,14 @@
 package com.qanunqapisi.repository;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.qanunqapisi.domain.TestAttempt;
@@ -16,11 +17,7 @@ import com.qanunqapisi.domain.TestAttempt;
 public interface TestAttemptRepository extends JpaRepository<TestAttempt, UUID> {
     List<TestAttempt> findByUserId(UUID userId);
 
-    Page<TestAttempt> findByUserId(UUID userId, Pageable pageable);
-
     List<TestAttempt> findByUserIdAndTestId(UUID userId, UUID testId);
-
-    Optional<TestAttempt> findByUserIdAndTestIdAndStatus(UUID userId, UUID testId, String status);
 
     List<TestAttempt> findByUserIdAndTestIdAndStatusOrderByStartedAtDesc(UUID userId, UUID testId, String status);
 
@@ -33,8 +30,10 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, UUID> 
     List<TestAttempt> findByTestId(UUID testId);
 
     @Modifying
-    void deleteByUserId(UUID userId);
+    @Query("DELETE FROM TestAttempt ta WHERE ta.userId = :userId")
+    void deleteByUserId(@Param("userId") UUID userId);
 
     @Modifying
-    void deleteByTestId(UUID testId);
+    @Query("DELETE FROM TestAttempt ta WHERE ta.testId = :testId")
+    void deleteByTestId(@Param("testId") UUID testId);
 }

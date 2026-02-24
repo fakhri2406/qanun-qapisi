@@ -3,6 +3,8 @@ package com.qanunqapisi.repository;
 import com.qanunqapisi.domain.UserAnswer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,8 +15,10 @@ public interface UserAnswerRepository extends JpaRepository<UserAnswer, UUID> {
     List<UserAnswer> findByTestAttemptId(UUID testAttemptId);
 
     @Modifying
-    void deleteByTestAttemptId(UUID testAttemptId);
+    @Query("DELETE FROM UserAnswer ua WHERE ua.testAttemptId = :testAttemptId")
+    void deleteByTestAttemptId(@Param("testAttemptId") UUID testAttemptId);
 
     @Modifying
-    void deleteByTestAttemptIdIn(List<UUID> testAttemptIds);
+    @Query("DELETE FROM UserAnswer ua WHERE ua.testAttemptId IN :testAttemptIds")
+    void deleteByTestAttemptIdIn(@Param("testAttemptIds") List<UUID> testAttemptIds);
 }
